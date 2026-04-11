@@ -16,15 +16,36 @@ python -m http.server 8000
 ```
 then open http://localhost:8000.
 
-## Deploy to Vercel
-```
-npm i -g vercel
-vercel        # follow prompts
-vercel --prod # subsequent deploys
-```
-No env vars, no build command. Output dir = project root.
+## Deploy to GitHub Pages (recommended)
 
-You can also drag the folder onto https://vercel.com/new.
+GitHub Pages can't proxy the Google Sheet directly (CORS), so a GitHub Action
+fetches the sheet on a schedule and commits `sheet.csv` to the repo. The site
+then loads `./sheet.csv` from the same origin — no CORS, no third-party proxy.
+
+1. Create a new GitHub repo (e.g. `ismayilxsubhan-co`).
+2. From this folder:
+   ```
+   git init -b main
+   git add .
+   git commit -m "initial commit"
+   git remote add origin https://github.com/<you>/<repo>.git
+   git push -u origin main
+   ```
+3. On GitHub: **Settings → Pages → Build and deployment**
+   - Source: **Deploy from a branch**
+   - Branch: **main** / **/ (root)** → Save
+4. **Settings → Actions → General → Workflow permissions** → enable
+   **Read and write permissions** (so the workflow can commit `sheet.csv`).
+5. **Actions → Refresh sheet.csv → Run workflow** to do the first refresh now,
+   then it'll run automatically every 10 minutes.
+6. Visit `https://<you>.github.io/<repo>/`.
+
+### Deploy to Vercel (alternative)
+```
+npx vercel
+```
+Uses `vercel.json` to rewrite `/sheet.csv` to the published Google Sheet URL
+server-side. No GitHub Action needed; the site is always live.
 
 ## How balances are computed
 - **Top up** → adds to that person's balance.
@@ -34,4 +55,4 @@ You can also drag the folder onto https://vercel.com/new.
 
 ## Updating the sheet
 The sheet must be publicly viewable. The site refreshes on page load and on the refresh button — no caching.
-"# ismayilxsubhanco." 
+

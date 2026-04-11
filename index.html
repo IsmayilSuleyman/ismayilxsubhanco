@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1033" />
+  <title>Shared Budget · Sübhan & İsmayıl</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <main class="wrap">
+    <header class="topbar">
+      <div>
+        <h1>Shared Budget</h1>
+        <p class="sub" id="month-label">Loading…</p>
+      </div>
+      <button id="refresh" class="glass btn" type="button" aria-label="Refresh data">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+        <span>Refresh</span>
+      </button>
+    </header>
+
+    <section class="glass card hero" aria-labelledby="total-label">
+      <p id="total-label" class="label">Total Balance</p>
+      <p id="total-amount" class="amount big">—</p>
+      <p id="total-meta" class="meta"></p>
+    </section>
+
+    <section class="people" aria-label="Per-person balances">
+      <article class="glass card person" data-person="Sübhan">
+        <p class="label">Sübhan</p>
+        <p class="amount" data-field="balance">—</p>
+        <dl class="stats">
+          <div><dt>Topped up</dt><dd data-field="topup">—</dd></div>
+          <div><dt>Spent</dt><dd data-field="spent">—</dd></div>
+        </dl>
+      </article>
+      <article class="glass card person" data-person="İsmayıl">
+        <p class="label">İsmayıl</p>
+        <p class="amount" data-field="balance">—</p>
+        <dl class="stats">
+          <div><dt>Topped up</dt><dd data-field="topup">—</dd></div>
+          <div><dt>Spent</dt><dd data-field="spent">—</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <section class="glass card" aria-labelledby="cat-label">
+      <div class="card-head">
+        <p id="cat-label" class="label">Expenses by category</p>
+        <p class="meta" id="cat-total"></p>
+      </div>
+      <ul id="categories" class="cat-list"></ul>
+    </section>
+
+    <section class="glass card" aria-labelledby="tx-label">
+      <div class="card-head">
+        <p id="tx-label" class="label">Recent transactions</p>
+        <p class="meta" id="tx-meta"></p>
+      </div>
+      <ul id="tx-list" class="tx-list"></ul>
+    </section>
+
+    <footer class="foot">
+      <span id="status">—</span>
+      <a href="https://docs.google.com/spreadsheets/d/15ULjX9IpOkNqVcIi35wEH8bamnPvRHh_rDYzplDn9gI/edit?gid=0" target="_blank" rel="noopener">Open sheet ↗</a>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

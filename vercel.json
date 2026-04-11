@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/sheet.csv",
+      "destination": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVqbzTJJHPgIXlNKLg50CVSemInyOHA-yzsO2pceUVoKtmFqXSa__3j8xiGKqjo3Zb_NFePONk5a9b/pub?output=csv"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sheet.csv",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+name: Refresh sheet.csv
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub may delay scheduled runs under load.
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: [".github/workflows/refresh-sheet.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-sheet
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download published CSV
+        run: |
+          curl -sSL --fail --retry 3 \
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVqbzTJJHPgIXlNKLg50CVSemInyOHA-yzsO2pceUVoKtmFqXSa__3j8xiGKqjo3Zb_NFePONk5a9b/pub?output=csv" \
+            -o sheet.csv
+          test -s sheet.csv
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- sheet.csv; then
+            echo "No changes."
+            exit 0
+          fi
+          git add sheet.csv
+          git commit -m "chore: refresh sheet.csv"
+          git push
