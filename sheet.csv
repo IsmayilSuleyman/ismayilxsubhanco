@@ -1,18 +1,18 @@
 Date,Time,Amount (AZN),Transaction by,Transaction category,,,
-2026-04-11,17:00, ₼3.00,Sübhan,➕ Top up,,,
-2026-04-11,18:00, ₼5.00,İsmayıl,➕ Top up,,,
-2026-04-12,8:00,- ₼5.00,Shared,🍝 Dining out,,,
-2026-04-12,9:00,- ₼0.50,Sübhan,🚖 Transportation,,,
-2026-04-15,17:00,- ₼3.00,Shared,🖼 Household,,İsmayıl's Balance, ₼1.00
-,,,-,,,Sübhan's Balance,- ₼1.50
-,,,-,,,Total Balance,- ₼0.50
+,, ₼0.00,-,,,,
+,, ₼0.00,-,,,,
+,,,-,,,,
+,,,-,,,,
+,,,-,,,İsmayıl's Balance, ₼0.00
+,,,-,,,Sübhan's Balance, ₼0.00
+,,,-,,,Total Balance, ₼0.00
 ,,,-,,,,
 ,,,-,,,Expenses by category:,
 ,,,-,,,🥕 Groceries, ₼0.00
-,,,-,,,🍝 Dining out, ₼5.00
+,,,-,,,🍝 Dining out, ₼0.00
 ,,,-,,,⚡ Utilities, ₼0.00
-,,,-,,,🚖 Transportation, ₼0.50
-,,,-,,,🖼 Household, ₼3.00
+,,,-,,,🚖 Transportation, ₼0.00
+,,,-,,,🖼 Household, ₼0.00
 ,,,-,,,🤳 Subscriptions, ₼0.00
 ,,,-,,,🎉 Entertainment, ₼0.00
 ,,,-,,,😀 Other, ₼0.00
