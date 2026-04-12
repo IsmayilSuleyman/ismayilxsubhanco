@@ -196,7 +196,7 @@ function formatAZN(n) {
 function signClass(n) {
   if (n > 0.0049) return "pos";
   if (n < -0.0049) return "neg";
-  return "";
+  return null;
 }
 
 function emojiFor(catKey) {
@@ -227,7 +227,8 @@ function render(stats) {
   const totalEl = document.getElementById("total-amount");
   totalEl.textContent = formatAZN(stats.total);
   totalEl.classList.remove("pos", "neg");
-  totalEl.classList.add(signClass(stats.total));
+  const totalSign = signClass(stats.total);
+  if (totalSign) totalEl.classList.add(totalSign);
   setText(
     document.getElementById("total-meta"),
     `${stats.txCount} transactions · ${formatAZN(stats.totalSpent)} spent`
@@ -241,7 +242,8 @@ function render(stats) {
     const balEl = card.querySelector('[data-field="balance"]');
     balEl.textContent = formatAZN(data.balance);
     balEl.classList.remove("pos", "neg");
-    balEl.classList.add(signClass(data.balance));
+    const balSign = signClass(data.balance);
+    if (balSign) balEl.classList.add(balSign);
     card.querySelector('[data-field="topup"]').textContent = formatAZN(data.topup);
     card.querySelector('[data-field="spent"]').textContent = formatAZN(-data.spent);
   });
@@ -270,7 +272,7 @@ function render(stats) {
     const li = document.createElement("li");
     li.className = "tx-row";
     const chipClass = t.who === "Shared" ? "chip shared" : "chip";
-    const amtClass = signClass(t.amount);
+    const amtClass = signClass(t.amount) || "";
     li.innerHTML = `
       <div class="tx-emoji">${emojiFor(t.catKey)}</div>
       <div class="tx-main">
@@ -280,7 +282,7 @@ function render(stats) {
           <span class="${chipClass}">${t.who}</span>
         </div>
       </div>
-      <div class="tx-amt ${amtClass}">${formatAZN(t.amount)}</div>
+      <div class="tx-amt${amtClass ? " " + amtClass : ""}">${formatAZN(t.amount)}</div>
     `;
     txList.appendChild(li);
   }
