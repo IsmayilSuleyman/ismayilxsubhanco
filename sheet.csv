@@ -3,13 +3,13 @@ Date,Time,Amount (AZN),Transaction by,Transaction category,,,,
 2026-04-13,,- ₼10.22,Sübhan,🥕 Groceries,Mushroom soup,,,
 2026-04-13,,- ₼4.39,İsmayıl,🥕 Groceries,Tilapiya,,,
 2026-04-13,,- ₼1.00,İsmayıl,🖼 Household,Birbank Card,,,
-2026-04-14,, ₼3.05,Sübhan,,transfer by Ismayil,,İsmayıl's Balance, ₼3.02
-2026-04-13,, ₼3.00,Sübhan,,transfer by Ismayil,,Sübhan's Balance,- ₼2.93
-2026-04-13,,- ₼5.87,İsmayıl,,transfer to Subhan,,Total Balance, ₼0.09
+2026-04-14,, ₼3.05,Sübhan,,transfer by Ismayil,,İsmayıl's Balance, ₼12.79
+2026-04-13,, ₼3.00,Sübhan,,transfer by Ismayil,,Sübhan's Balance,- ₼3.69
+2026-04-13,,- ₼5.87,İsmayıl,,transfer to Subhan,,Total Balance, ₼9.10
 2026-04-14,10:00, ₼11.26,Sübhan,,sıfırlanma,,,
-2026-04-14,10:00, ₼11.26,İsmayıl,,sıfırlanma,,Expenses by category:, ₼82.61
-2026-04-14,12:40, ₼20.00,İsmayıl,➕ Top up,xeyirli olsun!,,🥕 Groceries, ₼60.81
-2026-04-14,16:21, ₼30.00,İsmayıl,➕ Top up,özümüzü bir az daha rahat hiss edək deyə,,🍝 Dining out, ₼19.20
+2026-04-14,10:00, ₼11.26,İsmayıl,,sıfırlanma,,Expenses by category:, ₼111.60
+2026-04-14,12:40, ₼20.00,İsmayıl,➕ Top up,xeyirli olsun!,,🥕 Groceries, ₼78.65
+2026-04-14,16:21, ₼30.00,İsmayıl,➕ Top up,özümüzü bir az daha rahat hiss edək deyə,,🍝 Dining out, ₼30.35
 2026-04-14,21:00,- ₼8.60,Shared,🥕 Groceries,Balıq (tilapiya),,⚡ Utilities, ₼0.00
 2026-04-14,23:00,- ₼1.39,Shared,🥕 Groceries,Çörək,,🚖 Transportation, ₼0.00
 2026-04-15,11:03, ₼20.00,Sübhan,➕ Top up,,,🖼 Household, ₼1.00
@@ -28,11 +28,11 @@ Date,Time,Amount (AZN),Transaction by,Transaction category,,,,
 2026-04-16,20:51,- ₼1.60,İsmayıl,😀 Other,gift for Sübhan,,,
 2026-04-17,9:13,,İsmayıl,🚖 Transportation,ADY,,,
 2026-04-17,18:29,- ₼5.36,İsmayıl,🍝 Dining out,29k celebratory,,,
-2026-04-17,,,-,,,,,
-,,,-,,,,,
-,,,-,,,,,
-,,,-,,,,,
-,,,-,,,,,
+2026-04-17,18:36, ₼28.00,İsmayıl,➕ Top up,top up,,,
+,, ₼10.00,Sübhan,➕ Top up,,,,
+2026-04-17,23:59,- ₼11.15,Shared,🍝 Dining out,Bravo,,,
+2026-04-18,0:05,- ₼10.36,Shared,🥕 Groceries,,,,
+2024-04-18,0:05,- ₼7.48,İsmayıl,🥕 Groceries,,,,
 ,,,-,,,,,
 ,,,-,,,,,
 ,,,-,,,,,
