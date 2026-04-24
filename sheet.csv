@@ -3,12 +3,12 @@ Date,Time,Amount (AZN),Transaction by,Transaction category,,,,
 2026-04-13,,- ₼10.22,Sübhan,🥕 Groceries,Mushroom soup,,,
 2026-04-13,,- ₼4.39,İsmayıl,🥕 Groceries,Tilapiya,,,
 2026-04-13,,- ₼1.00,İsmayıl,🖼 Household,Birbank Card,,,
-2026-04-14,, ₼3.05,Sübhan,,transfer by Ismayil,,İsmayıl's Balance, ₼55.32
-2026-04-13,, ₼3.00,Sübhan,,transfer by Ismayil,,Sübhan's Balance,- ₼22.58
-2026-04-13,,- ₼5.87,İsmayıl,,transfer to Subhan,,Total Balance, ₼32.74
+2026-04-14,, ₼3.05,Sübhan,,transfer by Ismayil,,İsmayıl's Balance, ₼54.72
+2026-04-13,, ₼3.00,Sübhan,,transfer by Ismayil,,Sübhan's Balance,- ₼23.17
+2026-04-13,,- ₼5.87,İsmayıl,,transfer to Subhan,,Total Balance, ₼31.55
 2026-04-14,10:00, ₼11.26,Sübhan,,sıfırlanma,,,
-2026-04-14,10:00, ₼11.26,İsmayıl,,sıfırlanma,,Expenses by category:, ₼206.96
-2026-04-14,12:40, ₼20.00,İsmayıl,➕ Top up,xeyirli olsun!,,🥕 Groceries, ₼132.02
+2026-04-14,10:00, ₼11.26,İsmayıl,,sıfırlanma,,Expenses by category:, ₼208.15
+2026-04-14,12:40, ₼20.00,İsmayıl,➕ Top up,xeyirli olsun!,,🥕 Groceries, ₼133.21
 2026-04-14,16:21, ₼30.00,İsmayıl,➕ Top up,özümüzü bir az daha rahat hiss edək deyə,,🍝 Dining out, ₼33.65
 2026-04-14,21:00,- ₼8.60,Shared,🥕 Groceries,Balıq (tilapiya),,⚡ Utilities, ₼29.99
 2026-04-14,23:00,- ₼1.39,Shared,🥕 Groceries,Çörək,,🚖 Transportation, ₼0.50
@@ -47,7 +47,7 @@ Date,Time,Amount (AZN),Transaction by,Transaction category,,,,
 2026-04-24,11:00,- ₼8.20,İsmayıl,😀 Other,pharmacy,,,
 2026-04-24,11:05,- ₼3.30,İsmayıl,🍝 Dining out,mini-pizza,,,
 2026-04-23,,- ₼16.09,Shared,🥕 Groceries,,,,
-,,,-,,,,,
+2026-04-24,23:37,- ₼1.19,Shared,🥕 Groceries,pepsi,,,
 ,,,-,,,,,
 ,,,-,,,,,
 ,,,-,,,,,
