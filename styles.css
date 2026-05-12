@@ -243,6 +243,129 @@ body {
 .cat-row.zero .cat-amount { color: var(--text-faint); }
 .cat-row.zero .cat-bar > span { background: rgba(255,255,255,0.18); }
 
+.cat-row[role="button"] {
+  cursor: pointer;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border-radius: 12px;
+  transition: background 0.18s ease;
+}
+.cat-row[role="button"]:hover { background: rgba(255,255,255,0.04); }
+.cat-row[role="button"]:focus-visible {
+  outline: 2px solid rgba(167,139,250,0.6);
+  outline-offset: 2px;
+}
+.cat-row[aria-pressed="true"] {
+  background: rgba(167,139,250,0.12);
+  box-shadow: inset 0 0 0 1px rgba(167,139,250,0.25);
+}
+
+/* ---------- Category donut chart ---------- */
+.cat-chart-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: 8px auto 16px;
+  aspect-ratio: 1 / 1;
+}
+.cat-chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+.cat-chart .slice {
+  cursor: pointer;
+  transform-origin: 0 0;
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+.cat-chart .slice:hover { filter: brightness(1.12); }
+.cat-chart .slice.is-dim { opacity: 0.32; }
+.cat-chart .slice.is-active {
+  filter: brightness(1.15) drop-shadow(0 0 8px rgba(255,255,255,0.18));
+  transform: scale(1.04);
+}
+.cat-chart-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 12px;
+}
+.cat-chart-center .cc-label {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.cat-chart-center .cc-amount {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Per-category breakdown panel ---------- */
+.cat-breakdown {
+  margin: 0 0 14px;
+  padding: 14px 14px 10px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.bd-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bd-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.bd-total {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 14px;
+}
+.bd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bd-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.bd-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+.bd-name { font-weight: 500; }
+.bd-pct { color: var(--text-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.bd-amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bd-row.zero .bd-name,
+.bd-row.zero .bd-pct,
+.bd-row.zero .bd-amt { color: var(--text-faint); }
+.bd-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
 /* ---------- Transactions ---------- */
 .tx-list {
   list-style: none;
