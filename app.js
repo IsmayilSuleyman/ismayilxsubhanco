@@ -32,14 +32,15 @@ const PEOPLE = ["Sübhan", "İsmayıl"];
 
 // Canonical category list (matches the sheet's expense categories block).
 const CATEGORIES = [
-  { key: "Groceries",      emoji: "🥕", color: "#a78bfa" },
-  { key: "Dining out",     emoji: "🍝", color: "#f472b6" },
-  { key: "Utilities",      emoji: "⚡", color: "#fbbf24" },
-  { key: "Transportation", emoji: "🚖", color: "#60a5fa" },
-  { key: "Household",      emoji: "🖼", color: "#34d399" },
-  { key: "Subscriptions",  emoji: "🤳", color: "#f97316" },
-  { key: "Entertainment",  emoji: "🎉", color: "#22d3ee" },
-  { key: "Other",          emoji: "😀", color: "#94a3b8" },
+  { key: "Groceries",      emoji: "🥕" },
+  { key: "Dining out",     emoji: "🍝" },
+  { key: "Utilities",      emoji: "⚡" },
+  { key: "Transportation", emoji: "🚖" },
+  { key: "Household",      emoji: "🖼" },
+  { key: "Subscriptions",  emoji: "🤳" },
+  { key: "Entertainment",  emoji: "🎉" },
+  { key: "Healthcare",     emoji: "🏥" },
+  { key: "Other",          emoji: "😀" },
 ];
 
 const PERSON_COLORS = { "Sübhan": "#a78bfa", "İsmayıl": "#60a5fa" };
