@@ -39,6 +39,7 @@ const CATEGORIES = [
   { key: "Household",      emoji: "🖼" },
   { key: "Subscriptions",  emoji: "🤳" },
   { key: "Entertainment",  emoji: "🎉" },
+  { key: "Healthcare",     emoji: "🏥" },
   { key: "Other",          emoji: "😀" },
 ];
 
