@@ -82,13 +82,49 @@ data class RecentTx(
     val editable: Boolean get() = id.isNotEmpty()
 }
 
+// Pre-computed summary read directly from Sheet2.
+data class Sheet2Summary(
+    val ismayilBalance: Double,
+    val subhanBalance: Double,
+    val totalBalance: Double,
+    // category key → (total, ismayil, subhan)
+    val categoryTotals: List<Triple<String, Double, Double>> // (total, ismayil, subhan) per category
+)
+
+object Sheet2Parser {
+    private fun num(s: String): Double =
+        s.replace(Regex("[^\\d.\\-]"), "").toDoubleOrNull() ?: 0.0
+
+    // values = Sheet2!A1:D15 as List<List<String>>
+    fun parse(values: List<List<String>>): Sheet2Summary {
+        fun cell(row: Int, col: Int) = values.getOrNull(row)?.getOrNull(col) ?: ""
+
+        val ismayilBalance = num(cell(0, 1))
+        val subhanBalance  = num(cell(1, 1))
+        val totalBalance   = num(cell(2, 1))
+
+        // Rows 6-14 (0-indexed) = Sheet2 rows 7-15 = categories
+        val cats = (6..14).mapNotNull { i ->
+            val rawName = cell(i, 0).trim()
+            if (rawName.isEmpty()) return@mapNotNull null
+            val total   = num(cell(i, 1))
+            val ismayil = num(cell(i, 2))
+            val subhan  = num(cell(i, 3))
+            Triple(total, ismayil, subhan)
+        }
+
+        return Sheet2Summary(ismayilBalance, subhanBalance, totalBalance, cats)
+    }
+}
+
 data class Stats(
     val total: Double,
     val totalSpent: Double,
     val perPerson: Map<String, PersonStats>,
     val categories: List<Pair<Category, Double>>,
     val recent: List<RecentTx>,
-    val txCount: Int
+    val txCount: Int,
+    val sheet2: Sheet2Summary? = null  // null until Sheet2 is loaded
 )
 
 object StatsComputer {

@@ -133,6 +133,9 @@ function rowDataFor_(sh, vals, idValue, existingRow) {
 
 function doGet(e) {
   try {
+    var params = (e && e.parameter) ? e.parameter : {};
+    if (params.action === 'list') return handleList_();
+    if (params.action === 'summary') return handleSummaryGet_();
     var ss = SpreadsheetApp.getActive();
     var info = ss ? {
       bound: true,
@@ -144,6 +147,32 @@ function doGet(e) {
   } catch (err) {
     return jsonOut({ ok: false, error: String(err && err.message ? err.message : err) });
   }
+}
+
+// Returns Sheet2!A1:D15 as a 2-D array so Android/web can display
+// the pre-computed balances and category totals directly.
+function handleSummaryGet_() {
+  var ss = SpreadsheetApp.getActive();
+  if (!ss) return jsonOut({ ok: false, error: 'not bound' });
+  var sh = ss.getSheetByName('Sheet2');
+  if (!sh) return jsonOut({ ok: false, error: 'Sheet2 not found' });
+  var values = sh.getRange('A1:D15').getValues();
+  return jsonOut({ ok: true, values: values });
+}
+
+// Returns every data row as an array of header-keyed objects.
+function handleList_() {
+  var sh = getTargetSheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return jsonOut({ ok: true, rows: [] });
+  var header = getHeader_(sh);
+  var data = sh.getRange(2, 1, last - 1, header.length).getValues();
+  var rows = data.map(function (row) {
+    var obj = {};
+    header.forEach(function (h, i) { obj[h] = String(row[i] == null ? '' : row[i]); });
+    return obj;
+  });
+  return jsonOut({ ok: true, rows: rows });
 }
 
 function doPost(e) {
@@ -172,6 +201,7 @@ function handleCreate_(body) {
     var id = Utilities.getUuid();
     var data = rowDataFor_(sh, v, id, null);
     sh.appendRow(data);
+    updateSummary_();
     return jsonOut({ ok: true, row: sh.getLastRow(), id: id });
   } finally {
     lock.releaseLock();
@@ -193,6 +223,7 @@ function handleUpdate_(body) {
     var existing = sh.getRange(rowIdx, 1, 1, header.length).getValues()[0];
     var data = rowDataFor_(sh, v, body.id, existing);
     sh.getRange(rowIdx, 1, 1, data.length).setValues([data]);
+    updateSummary_();
     return jsonOut({ ok: true, row: rowIdx, id: body.id });
   } finally {
     lock.releaseLock();
@@ -208,6 +239,7 @@ function handleDelete_(body) {
     var rowIdx = findRowById_(sh, body.id);
     if (rowIdx === -1) return jsonOut({ ok: false, error: 'id not found' });
     sh.deleteRow(rowIdx);
+    updateSummary_();
     return jsonOut({ ok: true, deleted: body.id });
   } finally {
     lock.releaseLock();
@@ -238,4 +270,128 @@ function jsonOut(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- Summary tab ----------
+
+var SUMMARY_TAB_NAME = 'Summary';
+
+// Parses a formatted amount string like "- ₼5.00" or " ₼3.00" into a number.
+function parseAmountStr_(s) {
+  if (!s) return 0;
+  var cleaned = String(s).replace(/\s+/g, '').replace(/₼/g, '').replace(/,/g, '');
+  if (!cleaned || cleaned === '-') return 0;
+  var n = parseFloat(cleaned);
+  return isFinite(n) ? n : 0;
+}
+
+function categoryKeyStr_(raw) {
+  if (!raw) return '';
+  return String(raw).replace(/^[^À-ɏ\w]+/, '').trim();
+}
+
+// Computes per-person and per-category totals from the transactions sheet.
+function computeSummaryStats_() {
+  var sh = getTargetSheet_();
+  var last = sh.getLastRow();
+  var allPeople = ['Sübhan', 'İsmayıl', 'Shared'];
+  var individuals = ['Sübhan', 'İsmayıl'];
+  var stats = {};
+  individuals.forEach(function (p) { stats[p] = { balance: 0, topup: 0, spent: 0 }; });
+  var catTotals = {};
+  EXPENSE_CATEGORIES.forEach(function (c) { catTotals[categoryKeyStr_(c)] = 0; });
+  var txCount = 0;
+
+  if (last < 2) return { stats: stats, catTotals: catTotals, txCount: 0 };
+
+  var header = getHeader_(sh);
+  var data = sh.getRange(2, 1, last - 1, header.length).getValues();
+
+  data.forEach(function (row) {
+    var obj = {};
+    header.forEach(function (h, i) { obj[h] = String(row[i] == null ? '' : row[i]); });
+    var who = obj['Transaction by'] || '';
+    if (allPeople.indexOf(who) === -1) return;
+    txCount++;
+    var amt = parseAmountStr_(obj['Amount (AZN)']);
+    var catKey = categoryKeyStr_(obj['Transaction category']);
+    var isTopUp = catKey.toLowerCase() === 'top up';
+
+    if (isTopUp && individuals.indexOf(who) !== -1) {
+      stats[who].topup += amt;
+      stats[who].balance += amt;
+      return;
+    }
+
+    if (who === 'Shared') {
+      var half = amt / 2;
+      individuals.forEach(function (p) {
+        stats[p].balance += half;
+        stats[p].spent += -half;
+      });
+    } else if (individuals.indexOf(who) !== -1) {
+      stats[who].balance += amt;
+      stats[who].spent += -amt;
+    }
+
+    if (catKey in catTotals) catTotals[catKey] += -amt;
+  });
+
+  return { stats: stats, catTotals: catTotals, txCount: txCount };
+}
+
+// Creates (if missing) and rewrites the Summary tab with computed totals.
+function updateSummary_() {
+  var ss = SpreadsheetApp.getActive();
+  if (!ss) return;
+
+  // Get or create the Summary tab.
+  var sumSh = ss.getSheetByName(SUMMARY_TAB_NAME);
+  if (!sumSh) {
+    sumSh = ss.insertSheet(SUMMARY_TAB_NAME);
+  }
+  sumSh.clearContents();
+
+  var result = computeSummaryStats_();
+  var s = result.stats;
+  var cats = result.catTotals;
+  var tz = TIMEZONE;
+  var now = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd HH:mm');
+
+  var rows = [];
+  rows.push(['Last updated', now]);
+  rows.push([]);
+  rows.push(['Balances', '', '', '']);
+  rows.push(['Person', 'Balance (AZN)', 'Top-up (AZN)', 'Spent (AZN)']);
+  ['Sübhan', 'İsmayıl'].forEach(function (p) {
+    rows.push([
+      p,
+      s[p].balance.toFixed(2),
+      s[p].topup.toFixed(2),
+      s[p].spent.toFixed(2)
+    ]);
+  });
+  var combinedBalance = s['Sübhan'].balance + s['İsmayıl'].balance;
+  var combinedTopup  = s['Sübhan'].topup  + s['İsmayıl'].topup;
+  var combinedSpent  = s['Sübhan'].spent  + s['İsmayıl'].spent;
+  rows.push(['Combined', combinedBalance.toFixed(2), combinedTopup.toFixed(2), combinedSpent.toFixed(2)]);
+  rows.push([]);
+  rows.push(['Spending by category', '']);
+  rows.push(['Category', 'Spent (AZN)']);
+  EXPENSE_CATEGORIES.forEach(function (c) {
+    var key = categoryKeyStr_(c);
+    rows.push([c, (cats[key] || 0).toFixed(2)]);
+  });
+  rows.push([]);
+  rows.push(['Total transactions', result.txCount]);
+
+  sumSh.getRange(1, 1, rows.length, 4).setValues(
+    rows.map(function (r) { while (r.length < 4) r.push(''); return r; })
+  );
+}
+
+// Run once manually to generate the Summary tab from existing data.
+function buildSummaryNow() {
+  updateSummary_();
+  Logger.log('Summary tab updated.');
 }
