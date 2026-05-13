@@ -385,6 +385,7 @@ private fun CategoryBreakdownDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text("Spending by person", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
         },
