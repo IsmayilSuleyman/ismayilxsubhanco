@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,6 +60,12 @@ import com.subhanismayil.budget.ui.theme.colorForCategory
 import kotlinx.coroutines.launch
 
 private const val EDITABLE_TOP_N = 5
+
+// "Wed May 13 2026 00:00:00 GMT+0400 (Azərbaycan Standart Vaxtı)" → "13 May 2026"
+private fun formatDate(raw: String): String {
+    val p = raw.trim().split(Regex("\\s+"))
+    return if (p.size >= 4) "${p[2]} ${p[1]} ${p[3]}" else raw
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,9 +230,20 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
             )
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tx.date, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                Text(
+                    formatDate(tx.date),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (tx.time.isNotEmpty()) {
-                    Text("  ·  ${tx.time}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    Text(
+                        "  ·  ${tx.time}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                        maxLines = 1
+                    )
                 }
                 Spacer(Modifier.width(8.dp))
                 WhoChip(tx.who)
