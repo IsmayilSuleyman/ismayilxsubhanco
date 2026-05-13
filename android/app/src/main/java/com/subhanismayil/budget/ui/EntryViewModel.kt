@@ -20,11 +20,19 @@ import kotlinx.coroutines.launch
 data class EntryUiState(
     val amount: String = "",
     val isTopUp: Boolean = false,
+    val isWithdrawal: Boolean = false, // only meaningful when isTopUp = true
     val who: String? = null,
     val categoryKey: String? = null,
     val note: String = "",
     val submitting: Boolean = false
 ) {
+    // Amount as signed double: negative when withdrawal top-up
+    val signedAmount: Double?
+        get() {
+            val n = parseAmountInput(amount) ?: return null
+            return if (isTopUp && isWithdrawal) -n else n
+        }
+
     val canSubmit: Boolean
         get() {
             val n = parseAmountInput(amount) ?: return false
@@ -78,9 +86,14 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
         val newWho = if (v && current.who == People.SHARED) null else current.who
         _state.value = current.copy(
             isTopUp = v,
+            isWithdrawal = false,
             who = newWho,
             categoryKey = if (v) null else current.categoryKey
         )
+    }
+
+    fun setWithdrawal(v: Boolean) {
+        _state.value = _state.value.copy(isWithdrawal = v)
     }
 
     fun setWho(w: String) {
@@ -101,7 +114,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
     fun submit() {
         val s = _state.value
         if (!s.canSubmit || s.submitting) return
-        val amount = EntryUiState.parseAmountInput(s.amount) ?: return
+        val amount = s.signedAmount ?: return
         val who = s.who ?: return
         val category = if (s.isTopUp) {
             Categories.TOP_UP_FULL
@@ -123,7 +136,8 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
             if (result.isSuccess && resp != null && resp.ok) {
                 _state.value = EntryUiState(
                     who = s.who,
-                    isTopUp = s.isTopUp
+                    isTopUp = s.isTopUp,
+                    isWithdrawal = s.isWithdrawal
                 )
                 _events.send(EntryEvent.Success("Added"))
             } else {

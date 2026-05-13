@@ -109,6 +109,7 @@ fun HomeScreen(
             balancesState = balancesState,
             onAmount = entryViewModel::setAmount,
             onTopUp = entryViewModel::setTopUp,
+            onWithdrawal = entryViewModel::setWithdrawal,
             onWho = entryViewModel::setWho,
             onCategory = entryViewModel::setCategory,
             onNote = entryViewModel::setNote,
@@ -127,6 +128,7 @@ private fun Content(
     balancesState: BalancesUiState,
     onAmount: (String) -> Unit,
     onTopUp: (Boolean) -> Unit,
+    onWithdrawal: (Boolean) -> Unit,
     onWho: (String) -> Unit,
     onCategory: (String) -> Unit,
     onNote: (String) -> Unit,
@@ -148,6 +150,7 @@ private fun Content(
             state = entryState,
             onAmount = onAmount,
             onTopUp = onTopUp,
+            onWithdrawal = onWithdrawal,
             onWho = onWho,
             onCategory = onCategory,
             onNote = onNote,
@@ -452,6 +455,7 @@ private fun AddTransactionCard(
     state: EntryUiState,
     onAmount: (String) -> Unit,
     onTopUp: (Boolean) -> Unit,
+    onWithdrawal: (Boolean) -> Unit,
     onWho: (String) -> Unit,
     onCategory: (String) -> Unit,
     onNote: (String) -> Unit,
@@ -468,6 +472,24 @@ private fun AddTransactionCard(
                     modifier = Modifier.weight(1f)
                 )
                 ExpenseTopUpToggle(isTopUp = state.isTopUp, onChange = onTopUp)
+            }
+
+            if (state.isTopUp) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel("TYPE")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PillButton(
+                            label = "+ Deposit",
+                            selected = !state.isWithdrawal,
+                            onClick = { onWithdrawal(false) }
+                        )
+                        PillButton(
+                            label = "− Withdrawal",
+                            selected = state.isWithdrawal,
+                            onClick = { onWithdrawal(true) }
+                        )
+                    }
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -513,6 +535,9 @@ private fun AddTransactionCard(
                         onValueChange = onAmount,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        prefix = if (state.isTopUp) {
+                            { Text(if (state.isWithdrawal) "−" else "+", color = TextSecondary) }
+                        } else null,
                         suffix = { Text("₼", color = TextSecondary) },
                         placeholder = { Text("0.00", color = TextSecondary) },
                         textStyle = MaterialTheme.typography.titleLarge,
