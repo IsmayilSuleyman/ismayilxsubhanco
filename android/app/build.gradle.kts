@@ -7,7 +7,6 @@ plugins {
 // Edit these two values after deploying the Apps Script web app and
 // publishing the static site, then rebuild the APK.
 val webAppUrl = providers.gradleProperty("WEB_APP_URL").orElse("https://script.google.com/macros/s/AKfycbzcErntGIcTldT1Y0tAksrcTFm3fZ82HtveNFUTvdAzAQMkqvGAsBZMndsGVVWuEmr-Lw/exec").get()
-val sheetCsvUrl = providers.gradleProperty("SHEET_CSV_URL").orElse("https://docs.google.com/spreadsheets/d/e/2PACX-1vSVqbzTJJHPgIXlNKLg50CVSemInyOHA-yzsO2pceUVoKtmFqXSa__3j8xiGKqjo3Zb_NFePONk5a9b/pub?output=csv").get()
 
 android {
     namespace = "com.subhanismayil.budget"
@@ -21,7 +20,6 @@ android {
         versionName = "1.0"
 
         buildConfigField("String", "WEB_APP_URL", "\"$webAppUrl\"")
-        buildConfigField("String", "SHEET_CSV_URL", "\"$sheetCsvUrl\"")
     }
 
     buildTypes {
