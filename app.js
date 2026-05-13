@@ -1,32 +1,13 @@
 // Shared Budget Tracker — fetches a public Google Sheet and renders stats.
 
-const SHEET_ID = "15ULjX9IpOkNqVcIi35wEH8bamnPvRHh_rDYzplDn9gI";
+const SHEET_ID = "11k9k2bbzl1q-7pkt1vhspOiHmeWaMpaSzDOS6d5EsoY";
+const SHEET2_GID = "763940303"; // Summary tab
 const GID = "0";
 
-// If you have used File → Share → Publish to web, paste the published CSV URL
-// here (looks like .../spreadsheets/d/e/2PACX-.../pub?gid=0&single=true&output=csv).
-// Published URLs always allow cross-origin fetch — most reliable.
-const PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVqbzTJJHPgIXlNKLg50CVSemInyOHA-yzsO2pceUVoKtmFqXSa__3j8xiGKqjo3Zb_NFePONk5a9b/pub?output=csv";
-
-// Same-origin CSV. On GitHub Pages this file is refreshed by a GitHub Actions
-// workflow (.github/workflows/refresh-sheet.yml). On Vercel it's served via
-// vercel.json rewrite. Either way: same origin, no CORS.
-// Relative path so it works whether the site is at user.github.io/repo/ or root.
-const PROXY_URL = "./sheet.csv";
-
-// Public CORS proxies for local testing only. Deploying to Vercel removes the
-// need for any of these.
-const CORS_PROXIES = [
-  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u) => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
-  (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-];
-
-const SHEET_URLS = [
-  PROXY_URL,
-  PUBLISHED_CSV_URL,
-  ...(PUBLISHED_CSV_URL ? CORS_PROXIES.map((p) => p(PUBLISHED_CSV_URL)) : []),
-];
+// Google Sheets API v4 key. Create one at console.cloud.google.com:
+//   APIs & Services → Credentials → Create API Key
+// Restrict it to the Sheets API and your deployed domain(s).
+const API_KEY = "AIzaSyB2T5NrYEEty6xmAPRP18LIJw7nQSDiFIk";
 
 const PEOPLE = ["Sübhan", "İsmayıl"];
 
@@ -47,58 +28,86 @@ const PERSON_COLORS = { "Sübhan": "#a78bfa", "İsmayıl": "#60a5fa" };
 
 // ---------- Fetching ----------
 
-async function fetchSheet() {
-  const errors = [];
-  for (const baseUrl of SHEET_URLS) {
-    const sep = baseUrl.includes("?") ? "&" : "?";
-    const url = `${baseUrl}${sep}_=${Date.now()}`;
-    try {
-      const r = await fetch(url, { cache: "no-store", redirect: "follow" });
-      if (!r.ok) { errors.push(`${r.status} @ ${baseUrl}`); continue; }
-      const text = await r.text();
-      // Detect HTML sign-in page (sheet not actually public).
-      if (text.trimStart().startsWith("<")) {
-        errors.push(`HTML response (sheet not public) @ ${baseUrl}`);
-        continue;
-      }
-      return text;
-    } catch (e) {
-      errors.push(`${e.message || e} @ ${baseUrl}`);
-    }
-  }
-  throw new Error(errors.join(" | "));
+async function sheetApiGet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&_=${Date.now()}`;
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`Sheets API error ${r.status}`);
+  const json = await r.json();
+  if (json.error) throw new Error(json.error.message);
+  return json.values || [];
 }
 
-// ---------- CSV ----------
+// Sheet1 — raw transaction rows (header row first).
+async function fetchSheet() {
+  return sheetApiGet("Sheet1!A:G");
+}
 
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let cell = "";
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { cell += '"'; i++; }
-        else inQuotes = false;
-      } else cell += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ",") { row.push(cell); cell = ""; }
-      else if (c === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
-      else if (c === "\r") { /* skip */ }
-      else cell += c;
-    }
-  }
-  if (cell.length || row.length) { row.push(cell); rows.push(row); }
-  if (!rows.length) return [];
-  const headers = rows[0].map((h) => h.trim());
-  return rows.slice(1).map((r) => {
+// Sheet2 — pre-computed summary (balances + category totals).
+async function fetchSummary() {
+  return sheetApiGet("Sheet2!A1:D15");
+}
+
+// ---------- Parsing ----------
+
+// Converts Sheet1 rows to header-keyed objects for computeStats().
+function parseRows(values) {
+  if (!values.length) return [];
+  const headers = values[0].map((h) => h.trim());
+  return values.slice(1).map((row) => {
     const o = {};
-    headers.forEach((h, i) => (o[h] = (r[i] ?? "").trim()));
+    headers.forEach((h, i) => (o[h] = String(row[i] ?? "").trim()));
     return o;
   });
+}
+
+// Parses Sheet2!A1:D15 into structured summary data.
+// Sheet2 layout:
+//   A1:B1  İsmayıl's Balance / value
+//   A2:B2  Sübhan's Balance  / value
+//   A3:B3  Total Balance     / value
+//   A5:D5  (headers: TOTAL, İSMAYIL, SÜBHAN)
+//   A6:D6  Expenses by category totals row
+//   A7:D15 One row per category
+function parseSummary(values) {
+  const num = (v) => (typeof v === "number" ? v : parseFloat(String(v).replace(/[^\d.-]/g, "")) || 0);
+  const summary = {
+    perPerson: {
+      "İsmayıl": { balance: 0, topup: 0, spent: 0 },
+      "Sübhan":  { balance: 0, topup: 0, spent: 0 },
+    },
+    total: 0,
+    totalSpent: 0,
+    categories: [],
+  };
+
+  if (!values.length) return summary;
+
+  // Rows 0-2: balances
+  if (values[0]) summary.perPerson["İsmayıl"].balance = num(values[0][1]);
+  if (values[1]) summary.perPerson["Sübhan"].balance  = num(values[1][1]);
+  if (values[2]) summary.total = num(values[2][1]);
+
+  // Rows 6-14: category data (A7:D15, index 6..14 in the values array)
+  const catRows = values.slice(6, 15);
+  summary.categories = catRows.map((row) => {
+    const rawName = String(row[0] ?? "").trim();
+    const catKey  = rawName.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+    const catDef  = CATEGORIES.find((c) => c.key.toLowerCase() === catKey.toLowerCase());
+    const total   = num(row[1]);
+    const ismayil = num(row[2]);
+    const subhan  = num(row[3]);
+    summary.totalSpent += total;
+    summary.perPerson["İsmayıl"].spent += ismayil;
+    summary.perPerson["Sübhan"].spent  += subhan;
+    return {
+      key:     catKey || rawName,
+      emoji:   catDef ? catDef.emoji : "💼",
+      amount:  total,
+      byPerson: { "İsmayıl": ismayil, "Sübhan": subhan },
+    };
+  }).sort((a, b) => b.amount - a.amount);
+
+  return summary;
 }
 
 // ---------- Parsing helpers ----------
@@ -488,9 +497,25 @@ async function load() {
   btn.classList.add("loading");
   status.textContent = "Loading…";
   try {
-    const csv = await fetchSheet();
-    const rows = parseCSV(csv);
-    const stats = computeStats(rows);
+    // Fetch Sheet1 (transactions) and Sheet2 (pre-computed summary) in parallel.
+    const [txValues, summaryValues] = await Promise.all([fetchSheet(), fetchSummary()]);
+    const rows = parseRows(txValues);
+    const summary = parseSummary(summaryValues);
+
+    // Build stats: balances + categories come from Sheet2 (pre-computed by Sheets
+    // formulas); recent transaction list comes from Sheet1.
+    const txStats = computeStats(rows); // still needed for recent list + txCount
+    const stats = {
+      total:      summary.total,
+      totalSpent: summary.totalSpent,
+      perPerson:  summary.perPerson,
+      categories: summary.categories,
+      recent:     txStats.recent,
+      txCount:    txStats.txCount,
+      catByPerson: Object.fromEntries(
+        summary.categories.map((c) => [c.key, c.byPerson])
+      ),
+    };
     currentStats = stats;
     render(stats);
     status.textContent = "Updated " + new Date().toLocaleTimeString();
