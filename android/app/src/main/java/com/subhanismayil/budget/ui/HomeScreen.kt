@@ -24,10 +24,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -36,16 +41,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -277,13 +286,31 @@ private fun PersonBalanceItem(name: String, amount: Double?, modifier: Modifier 
 
 @Composable
 private fun ExpensesCard(stats: Stats?) {
+    var showDetails by remember { mutableStateOf(false) }
+
     GlassCard {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(
-                "Expenses this month",
-                style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Expenses this month",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                if (stats != null) {
+                    IconButton(
+                        onClick = { showDetails = true },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = "Details",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val cats = stats?.categories.orEmpty().filter { it.second > 0.0049 }
                 if (cats.isEmpty()) {
@@ -334,6 +361,88 @@ private fun ExpensesCard(stats: Stats?) {
             }
         }
     }
+
+    if (showDetails && stats != null) {
+        CategoryBreakdownDialog(
+            categories = stats.categories,
+            breakdown = stats.categoryBreakdown,
+            onDismiss = { showDetails = false }
+        )
+    }
+}
+
+@Composable
+private fun CategoryBreakdownDialog(
+    categories: List<Pair<Category, Double>>,
+    breakdown: Map<String, Pair<Double, Double>>,
+    onDismiss: () -> Unit
+) {
+    val rows = categories.mapNotNull { (cat, _) ->
+        val (i, s) = breakdown[cat.key] ?: return@mapNotNull null
+        if (i < 0.005 && s < 0.005) return@mapNotNull null
+        Triple(cat, i, s)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Spending by person", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // header
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        People.ISMAYIL,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(60.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        People.SUBHAN,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(60.dp)
+                    )
+                }
+                rows.forEach { (cat, ismayil, subhan) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "${cat.emoji} ${cat.key}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            if (ismayil > 0.005) formatAznCompact(ismayil) else "—",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (ismayil > 0.005) TextPrimary else TextSecondary,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.width(60.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (subhan > 0.005) formatAznCompact(subhan) else "—",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (subhan > 0.005) TextPrimary else TextSecondary,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.width(60.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close", color = AccentPrimary) }
+        }
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)

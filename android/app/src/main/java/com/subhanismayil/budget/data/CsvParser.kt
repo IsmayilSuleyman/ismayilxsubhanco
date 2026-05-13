@@ -122,9 +122,11 @@ data class Stats(
     val totalSpent: Double,
     val perPerson: Map<String, PersonStats>,
     val categories: List<Pair<Category, Double>>,
+    // categoryKey → (İsmayıl spent, Sübhan spent); shared txs split 50/50
+    val categoryBreakdown: Map<String, Pair<Double, Double>> = emptyMap(),
     val recent: List<RecentTx>,
     val txCount: Int,
-    val sheet2: Sheet2Summary? = null  // null until Sheet2 is loaded
+    val sheet2: Sheet2Summary? = null
 )
 
 object StatsComputer {
@@ -132,6 +134,7 @@ object StatsComputer {
         val filtered = rows.filter { CsvParser.isExpenseRow(it) }
         val perPerson = People.INDIVIDUALS.associateWith { PersonStats() }
         val catTotals = Categories.EXPENSE.associate { it.key to 0.0 }.toMutableMap()
+        val catBreakdown = mutableMapOf<String, Pair<Double, Double>>() // key → (ismayil, subhan)
         var totalSpent = 0.0
 
         for (r in filtered) {
@@ -159,8 +162,16 @@ object StatsComputer {
             }
 
             if (catKey in catTotals) {
-                catTotals[catKey] = catTotals.getValue(catKey) + (-amt)
-                totalSpent += -amt
+                val spent = -amt
+                catTotals[catKey] = catTotals.getValue(catKey) + spent
+                totalSpent += spent
+                val (curI, curS) = catBreakdown.getOrDefault(catKey, 0.0 to 0.0)
+                catBreakdown[catKey] = when (who) {
+                    People.ISMAYIL -> (curI + spent) to curS
+                    People.SUBHAN  -> curI to (curS + spent)
+                    People.SHARED  -> (curI + spent / 2.0) to (curS + spent / 2.0)
+                    else           -> curI to curS
+                }
             }
         }
 
@@ -190,6 +201,7 @@ object StatsComputer {
             totalSpent = totalSpent,
             perPerson = perPerson,
             categories = cats,
+            categoryBreakdown = catBreakdown,
             recent = recent,
             txCount = filtered.size
         )
