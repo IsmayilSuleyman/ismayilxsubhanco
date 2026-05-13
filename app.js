@@ -30,7 +30,7 @@ const PERSON_COLORS = { "Sübhan": "#a78bfa", "İsmayıl": "#60a5fa" };
 
 async function sheetApiGet(range) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&_=${Date.now()}`;
-  const r = await fetch(url, { cache: "no-store" });
+  const r = await fetch(url, { cache: "no-store", referrerPolicy: "no-referrer-when-downgrade" });
   if (!r.ok) throw new Error(`Sheets API error ${r.status}`);
   const json = await r.json();
   if (json.error) throw new Error(json.error.message);
