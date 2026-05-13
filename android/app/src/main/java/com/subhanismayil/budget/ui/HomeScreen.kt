@@ -181,22 +181,22 @@ private fun GlassCard(
     ) { content() }
 }
 
-// Returns the two gradient colours that reflect the health of both balances.
+// Balance-health gradient — full green→red spectrum, no purple.
 // Priority (most urgent first):
-//   1. At least one person below 0      → red-orange
-//   2. Both below 20                    → amber/yellow
-//   3. At least one below 20            → olive-green (yellowish)
-//   4. Both above 50                    → green
-//   5. Otherwise                        → default purple
+//   one < 0          → red-orange  (danger)
+//   both < 20        → amber       (warning)
+//   one < 20         → olive-green (mild warning)
+//   both > 50        → deep green  (excellent)
+//   both 20–50       → mid green   (healthy)
 private fun balanceGradient(stats: Stats?): Pair<Color, Color> {
-    val a = stats?.perPerson?.get(People.ISMAYIL)?.balance ?: return AccentPrimary to AccentSecondary
-    val b = stats.perPerson[People.SUBHAN]?.balance ?: return AccentPrimary to AccentSecondary
+    val a = stats?.perPerson?.get(People.ISMAYIL)?.balance ?: return Color(0xFF388E3C) to Color(0xFF81C784)
+    val b = stats.perPerson[People.SUBHAN]?.balance ?: return Color(0xFF388E3C) to Color(0xFF81C784)
     return when {
-        a < 0 || b < 0      -> Color(0xFFBF360C) to Color(0xFFE53935) // red-orange
-        a < 20 && b < 20    -> Color(0xFFF57F17) to Color(0xFFFFD54F) // amber/yellow
-        a < 20 || b < 20    -> Color(0xFF558B2F) to Color(0xFF8BC34A) // olive-green
-        a > 50 && b > 50    -> Color(0xFF2E7D32) to Color(0xFF66BB6A) // green
-        else                -> AccentPrimary to AccentSecondary        // default purple
+        a < 0 || b < 0   -> Color(0xFFBF360C) to Color(0xFFE53935) // red-orange
+        a < 20 && b < 20 -> Color(0xFFF57F17) to Color(0xFFFFD54F) // amber/yellow
+        a < 20 || b < 20 -> Color(0xFF558B2F) to Color(0xFF8BC34A) // olive-green
+        a > 50 && b > 50 -> Color(0xFF1B5E20) to Color(0xFF43A047) // deep green
+        else             -> Color(0xFF388E3C) to Color(0xFF81C784) // mid green (20–50)
     }
 }
 
