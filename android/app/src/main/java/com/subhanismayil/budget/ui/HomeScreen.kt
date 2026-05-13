@@ -133,7 +133,6 @@ private fun Content(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        TitlePill()
         BalanceCard(stats = balancesState.stats, loading = balancesState.loading, onRefresh = onRefresh)
         ExpensesCard(stats = balancesState.stats)
         AddTransactionCard(
