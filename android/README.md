@@ -25,15 +25,14 @@ Two screens:
 
 ## Configure the URLs
 
-The two URLs are wired in via Gradle properties so you can rebuild for
+The Apps Script URL is wired in via a Gradle property so you can rebuild for
 new environments without editing source. Either:
 
-- Edit the defaults at the top of [`app/build.gradle.kts`](app/build.gradle.kts), **or**
-- Pass them on the command line: `gradlew assembleDebug -PWEB_APP_URL=... -PSHEET_CSV_URL=...`, **or**
+- Edit the default at the top of [`app/build.gradle.kts`](app/build.gradle.kts), **or**
+- Pass it on the command line: `gradlew assembleDebug -PWEB_APP_URL=...`, **or**
 - Add to a `gradle.properties` (in this `android/` folder) you keep locally:
   ```
   WEB_APP_URL=https://script.google.com/macros/s/.../exec
-  SHEET_CSV_URL=https://<your>.github.io/<repo>/sheet.csv
   ```
 
 ## Build a debug APK
