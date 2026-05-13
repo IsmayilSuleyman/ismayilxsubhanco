@@ -61,10 +61,17 @@ import kotlinx.coroutines.launch
 
 private const val EDITABLE_TOP_N = 5
 
-// "Wed May 13 2026 00:00:00 GMT+0400 (Azərbaycan Standart Vaxtı)" → "13 May 2026"
+// "Wed May 13 2026 00:00:00 GMT+0400 (...)" → "13 May 2026"
 private fun formatDate(raw: String): String {
     val p = raw.trim().split(Regex("\\s+"))
     return if (p.size >= 4) "${p[2]} ${p[1]} ${p[3]}" else raw
+}
+
+// "Sat Dec 30 1899 13:57:00 GMT+0400 (...)" or "13:57:00" → "13:57"
+private fun formatTime(raw: String): String {
+    val p = raw.trim().split(Regex("\\s+"))
+    val timePart = if (p.size >= 5) p[4] else p[0]
+    return timePart.split(":").take(2).joinToString(":")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,8 +171,8 @@ private fun Body(
                     }
                 } else {
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 12.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         items(recent.size) { idx ->
                             val tx = recent[idx]
@@ -207,28 +214,27 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
 
     val rowModifier = Modifier
         .fillMaxWidth()
-        .background(SurfaceGlass, RoundedCornerShape(16.dp))
-        .border(1.dp, Color(0x14000000), RoundedCornerShape(16.dp))
+        .background(SurfaceGlass, RoundedCornerShape(14.dp))
+        .border(1.dp, Color(0x14000000), RoundedCornerShape(14.dp))
         .then(if (editable) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(horizontal = 14.dp, vertical = 12.dp)
+        .padding(horizontal = 12.dp, vertical = 8.dp)
 
     Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .background(accent.copy(alpha = 0.18f), RoundedCornerShape(12.dp)),
+                .size(34.dp)
+                .background(accent.copy(alpha = 0.18f), RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(emoji, style = MaterialTheme.typography.titleLarge)
+            Text(emoji, style = MaterialTheme.typography.bodyLarge)
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 if (tx.isTopUp) "Top up" else tx.categoryKey.ifEmpty { "—" },
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = TextPrimary
             )
-            Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     formatDate(tx.date),
@@ -239,16 +245,16 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
                 )
                 if (tx.time.isNotEmpty()) {
                     Text(
-                        "  ·  ${tx.time}",
+                        "  ·  ${formatTime(tx.time)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                         maxLines = 1
                     )
                 }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
                 WhoChip(tx.who)
                 if (tx.note.isNotEmpty()) {
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(
                         tx.note,
                         style = MaterialTheme.typography.bodySmall,
@@ -261,7 +267,7 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 formatAznCompact(tx.amount),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = if (tx.amount < -0.005) Negative else TextPrimary
             )
             if (editable) {
