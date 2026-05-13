@@ -87,8 +87,8 @@ data class Sheet2Summary(
     val ismayilBalance: Double,
     val subhanBalance: Double,
     val totalBalance: Double,
-    // category key → (total, ismayil, subhan)
-    val categoryTotals: List<Triple<String, Double, Double>> // (total, ismayil, subhan) per category
+    // category key → (ismayil spent, subhan spent)
+    val categoryTotals: List<Triple<String, Double, Double>> // (categoryKey, ismayil, subhan) per category
 )
 
 object Sheet2Parser {
@@ -110,7 +110,7 @@ object Sheet2Parser {
             val total   = num(cell(i, 1))
             val ismayil = num(cell(i, 2))
             val subhan  = num(cell(i, 3))
-            Triple(total, ismayil, subhan)
+            Triple(rawName, ismayil, subhan)
         }
 
         return Sheet2Summary(ismayilBalance, subhanBalance, totalBalance, cats)

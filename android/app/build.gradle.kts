@@ -6,7 +6,7 @@ plugins {
 
 // Edit these two values after deploying the Apps Script web app and
 // publishing the static site, then rebuild the APK.
-val webAppUrl = providers.gradleProperty("WEB_APP_URL").orElse("https://script.google.com/macros/s/AKfycbzcErntGIcTldT1Y0tAksrcTFm3fZ82HtveNFUTvdAzAQMkqvGAsBZMndsGVVWuEmr-Lw/exec").get()
+val webAppUrl = providers.gradleProperty("WEB_APP_URL").orElse("https://script.google.com/macros/s/AKfycbyEiWmMP-NLA6O5qhKC_7ucRan39QtybSIWa9poi0QREqW2Kh-Z0rmGkukDc_INigdSEQ/exec").get()
 
 android {
     namespace = "com.subhanismayil.budget"
