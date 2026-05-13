@@ -181,16 +181,34 @@ private fun GlassCard(
     ) { content() }
 }
 
+// Returns the two gradient colours that reflect the health of both balances.
+// Priority (most urgent first):
+//   1. At least one person below 0      → red-orange
+//   2. Both below 20                    → amber/yellow
+//   3. At least one below 20            → olive-green (yellowish)
+//   4. Both above 50                    → green
+//   5. Otherwise                        → default purple
+private fun balanceGradient(stats: Stats?): Pair<Color, Color> {
+    val a = stats?.perPerson?.get(People.ISMAYIL)?.balance ?: return AccentPrimary to AccentSecondary
+    val b = stats.perPerson[People.SUBHAN]?.balance ?: return AccentPrimary to AccentSecondary
+    return when {
+        a < 0 || b < 0      -> Color(0xFFBF360C) to Color(0xFFE53935) // red-orange
+        a < 20 && b < 20    -> Color(0xFFF57F17) to Color(0xFFFFD54F) // amber/yellow
+        a < 20 || b < 20    -> Color(0xFF558B2F) to Color(0xFF8BC34A) // olive-green
+        a > 50 && b > 50    -> Color(0xFF2E7D32) to Color(0xFF66BB6A) // green
+        else                -> AccentPrimary to AccentSecondary        // default purple
+    }
+}
+
 @Composable
 private fun BalanceCard(stats: Stats?, loading: Boolean, onRefresh: () -> Unit) {
+    val (gradStart, gradEnd) = balanceGradient(stats)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
             .background(
-                Brush.linearGradient(
-                    colors = listOf(AccentPrimary, AccentSecondary)
-                )
+                Brush.linearGradient(colors = listOf(gradStart, gradEnd))
             )
             .clickable(onClick = onRefresh)
             .padding(24.dp)
