@@ -26,9 +26,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,6 +76,8 @@ import com.subhanismayil.budget.ui.theme.TextPrimary
 import com.subhanismayil.budget.ui.theme.TextSecondary
 import com.subhanismayil.budget.ui.theme.colorForCategory
 import androidx.compose.ui.text.style.TextOverflow
+import com.subhanismayil.budget.data.BudgetStatus
+import com.subhanismayil.budget.data.budgetStatusFor
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -116,7 +121,9 @@ fun HomeScreen(
             onNote = entryViewModel::setNote,
             onSubmit = entryViewModel::submit,
             onHistory = onShowHistory,
-            onRefresh = balancesViewModel::refresh
+            onRefresh = balancesViewModel::refresh,
+            budgets = balancesState.budgets,
+            onSaveBudgets = balancesViewModel::saveBudgets
         )
     }
 }
@@ -135,8 +142,12 @@ private fun Content(
     onNote: (String) -> Unit,
     onSubmit: () -> Unit,
     onHistory: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    budgets: Map<String, Double>,
+    onSaveBudgets: (Map<String, Double>) -> Unit
 ) {
+    var showBudgets by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -146,7 +157,20 @@ private fun Content(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         BalanceCard(stats = balancesState.stats, loading = balancesState.loading, onRefresh = onRefresh)
-        ExpensesCard(stats = balancesState.stats)
+        ExpensesCard(
+            stats = balancesState.stats,
+            budgets = budgets,
+            budgetsOpen = showBudgets,
+            onBudgets = { showBudgets = !showBudgets }
+        )
+        if (showBudgets) {
+            BudgetsCard(
+                stats = balancesState.stats,
+                budgets = budgets,
+                onSave = { onSaveBudgets(it); showBudgets = false },
+                onDismiss = { showBudgets = false }
+            )
+        }
         AddTransactionCard(
             state = entryState,
             onAmount = onAmount,
@@ -289,7 +313,12 @@ private fun PersonBalanceItem(name: String, amount: Double?, modifier: Modifier 
 }
 
 @Composable
-private fun ExpensesCard(stats: Stats?) {
+private fun ExpensesCard(
+    stats: Stats?,
+    budgets: Map<String, Double>,
+    budgetsOpen: Boolean,
+    onBudgets: () -> Unit
+) {
     var showDetails by remember { mutableStateOf(false) }
 
     GlassCard {
@@ -301,6 +330,19 @@ private fun ExpensesCard(stats: Stats?) {
                     color = TextPrimary,
                     modifier = Modifier.weight(1f)
                 )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (budgetsOpen) AccentPrimary.copy(alpha = 0.12f) else Color(0x0A000000))
+                        .clickable(onClick = onBudgets)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        "Budgets",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (budgetsOpen) AccentPrimary else TextSecondary
+                    )
+                }
                 if (stats != null) {
                     IconButton(
                         onClick = { showDetails = true },
@@ -313,6 +355,47 @@ private fun ExpensesCard(stats: Stats?) {
                             modifier = Modifier.size(18.dp)
                         )
                     }
+                }
+            }
+
+            // Lighthouse advisory banner
+            val warnings = stats?.categories.orEmpty().mapNotNull { (cat, amt) ->
+                budgetStatusFor(amt, budgets[cat.key])
+                    ?.takeIf { it != BudgetStatus.OK }
+                    ?.let { cat to it }
+            }
+            if (warnings.isNotEmpty()) {
+                val hasOver = warnings.any { it.second == BudgetStatus.OVER }
+                val chipColor = if (hasOver) Color(0xFFEF4444) else Color(0xFFF59E0B)
+                val overNames = warnings.filter { it.second == BudgetStatus.OVER }.joinToString { it.first.key }
+                val nearNames = warnings.filter { it.second == BudgetStatus.NEAR }.joinToString { it.first.key }
+                val label = buildString {
+                    if (overNames.isNotEmpty()) append("Over budget: $overNames")
+                    if (overNames.isNotEmpty() && nearNames.isNotEmpty()) append(" · ")
+                    if (nearNames.isNotEmpty()) append("Near limit: $nearNames")
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(chipColor.copy(alpha = 0.10f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = chipColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = chipColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -343,32 +426,54 @@ private fun ExpensesCard(stats: Stats?) {
                 ) {
                     cats.take(6).forEach { (cat, amt) ->
                         val pct = (amt / totalSpent * 100).roundToInt().coerceAtLeast(1)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(9.dp)
-                                    .background(colorForCategory(cat.key), RoundedCornerShape(50))
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                cat.key,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary,
-                                modifier = Modifier.weight(1f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                "$pct%",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = TextSecondary.copy(alpha = 0.6f)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                formatAznCompact(amt),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = TextPrimary
-                            )
+                        val limit = budgets[cat.key]
+                        val budgetStatus = budgetStatusFor(amt, limit)
+                        val fraction = limit?.let { (amt / it).toFloat().coerceIn(0f, 1f) }
+                        val barColor = when (budgetStatus) {
+                            BudgetStatus.OK   -> Color(0xFF10B981)
+                            BudgetStatus.NEAR -> Color(0xFFF59E0B)
+                            BudgetStatus.OVER -> Color(0xFFEF4444)
+                            null              -> null
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .background(colorForCategory(cat.key), RoundedCornerShape(50))
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    cat.key,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    "$pct%",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = TextSecondary.copy(alpha = 0.6f)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    formatAznCompact(amt),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = TextPrimary
+                                )
+                            }
+                            if (fraction != null && barColor != null) {
+                                LinearProgressIndicator(
+                                    progress = { fraction },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(3.dp)
+                                        .clip(RoundedCornerShape(2.dp)),
+                                    color = barColor,
+                                    trackColor = barColor.copy(alpha = 0.15f)
+                                )
+                            }
                         }
                     }
                 }
@@ -382,6 +487,114 @@ private fun ExpensesCard(stats: Stats?) {
             breakdown = stats.categoryBreakdown,
             onDismiss = { showDetails = false }
         )
+    }
+}
+
+@Composable
+private fun BudgetsCard(
+    stats: Stats?,
+    budgets: Map<String, Double>,
+    onSave: (Map<String, Double>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val spentMap = stats?.categories.orEmpty().associate { (cat, amt) -> cat.key to amt }
+    var drafts by remember(budgets) {
+        mutableStateOf(
+            Categories.EXPENSE.associate { cat ->
+                cat.key to (budgets[cat.key]?.let { "%.2f".format(it) } ?: "")
+            }
+        )
+    }
+
+    GlassCard {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Budgets",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            SectionLabel("MONTHLY LIMITS")
+
+            Categories.EXPENSE.forEach { cat ->
+                val spent = spentMap[cat.key]
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        cat.full,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (spent != null) {
+                        Text(
+                            formatAznCompact(spent),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TextSecondary
+                        )
+                    }
+                    OutlinedTextField(
+                        value = drafts[cat.key] ?: "",
+                        onValueChange = { drafts = drafts + (cat.key to it) },
+                        modifier = Modifier.width(90.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        suffix = { Text("₼", color = TextSecondary) },
+                        placeholder = { Text("—", color = TextSecondary) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = textFieldColors(),
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(listOf(AccentPrimary, AccentSecondary))
+                        )
+                        .clickable {
+                            val result = drafts.mapNotNull { (key, text) ->
+                                text.trim().replace(",", ".").toDoubleOrNull()
+                                    ?.takeIf { it > 0.0 }
+                                    ?.let { key to it }
+                            }.toMap()
+                            onSave(result)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Save Budgets", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                }
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, Color(0x1A000000))
+                ) {
+                    Text("Cancel", color = TextPrimary)
+                }
+            }
+        }
     }
 }
 
