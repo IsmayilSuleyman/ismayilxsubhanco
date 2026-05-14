@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class TransactionRequest(
     val amount: Double,
     val isTopUp: Boolean,
+    val isWithdrawal: Boolean = false,
     val transactionBy: String,
     val category: String,
     val note: String = "",
@@ -20,4 +21,10 @@ data class TransactionResponse(
     val row: Int? = null,
     val id: String? = null,
     val deleted: String? = null
+)
+
+@Serializable
+data class BudgetsRequest(
+    val action: String = "saveBudgets",
+    val budgets: Map<String, Double>
 )

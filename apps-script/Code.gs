@@ -81,8 +81,9 @@ function findRowById_(sh, id) {
   return -1;
 }
 
-function formatAmountStr_(amount, isTopUp) {
-  return isTopUp ? ' ₼' + amount.toFixed(2) : '- ₼' + amount.toFixed(2);
+function formatAmountStr_(amount, isTopUp, isWithdrawal) {
+  if (!isTopUp || isWithdrawal) return '- ₼' + amount.toFixed(2);
+  return ' ₼' + amount.toFixed(2);
 }
 
 function validatePayload_(body) {
@@ -91,6 +92,7 @@ function validatePayload_(body) {
     return { error: 'amount must be a positive number' };
   }
   var isTopUp = body.isTopUp === true;
+  var isWithdrawal = isTopUp && body.isWithdrawal === true;
   var who = body.transactionBy;
   if (PEOPLE.indexOf(who) === -1) {
     return { error: 'transactionBy must be Sübhan, İsmayıl, or Shared' };
@@ -106,7 +108,7 @@ function validatePayload_(body) {
   }
   var note = body.note ? String(body.note) : '';
   if (note.length > MAX_NOTE_LENGTH) note = note.substring(0, MAX_NOTE_LENGTH);
-  return { amount: amount, isTopUp: isTopUp, who: who, category: category, note: note };
+  return { amount: amount, isTopUp: isTopUp, isWithdrawal: isWithdrawal, who: who, category: category, note: note };
 }
 
 function rowDataFor_(sh, vals, idValue, existingRow) {
@@ -121,7 +123,7 @@ function rowDataFor_(sh, vals, idValue, existingRow) {
       case 'Time':
         if (!existingRow) data[i] = Utilities.formatDate(new Date(), TIMEZONE, 'H:mm');
         break;
-      case 'Amount (AZN)': data[i] = formatAmountStr_(vals.amount, vals.isTopUp); break;
+      case 'Amount (AZN)': data[i] = formatAmountStr_(vals.amount, vals.isTopUp, vals.isWithdrawal); break;
       case 'Transaction by': data[i] = vals.who; break;
       case 'Transaction category': data[i] = vals.category; break;
       case 'Note': data[i] = vals.note; break;
