@@ -13,7 +13,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 import com.subhanismayil.budget.ui.theme.TextPrimary
 import com.subhanismayil.budget.ui.theme.TextSecondary
 
@@ -26,7 +29,7 @@ fun DonutChart(
     centerSubLabel: String,
     modifier: Modifier = Modifier,
     diameter: Dp,
-    strokeRatio: Float = 0.26f
+    strokeRatio: Float = 0.15f
 ) {
     Box(modifier = modifier.size(diameter), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(diameter)) {
@@ -62,11 +65,15 @@ fun DonutChart(
             }
         }
         androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(centerLabel, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+            Text(
+                centerLabel,
+                style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp, letterSpacing = (-0.5).sp),
+                color = TextPrimary
+            )
             if (centerSubLabel.isNotEmpty()) {
                 Text(
                     centerSubLabel,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = TextStyle(fontWeight = FontWeight.SemiBold, fontSize = 10.sp, letterSpacing = 1.5.sp),
                     color = TextSecondary
                 )
             }
