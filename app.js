@@ -273,7 +273,7 @@ function renderDonut(stats) {
   svg.innerHTML = "";
 
   const rOuter = 50;
-  const rInner = 30;
+  const rInner = 38;
   const nonZero = stats.categories.filter((c) => c.amount > 0);
   const total = nonZero.reduce((s, c) => s + c.amount, 0);
 
@@ -308,10 +308,11 @@ function renderDonut(stats) {
     return;
   }
 
+  const gap = 0.025;
   for (const c of nonZero) {
     const sweep = (c.amount / total) * Math.PI * 2;
     const path = document.createElementNS(SVG_NS, "path");
-    path.setAttribute("d", donutSlicePath(angle, angle + sweep, rOuter, rInner));
+    path.setAttribute("d", donutSlicePath(angle + gap / 2, angle + sweep - gap / 2, rOuter, rInner));
     path.setAttribute("fill", c.color);
     path.dataset.cat = c.key;
     path.classList.add("slice");
