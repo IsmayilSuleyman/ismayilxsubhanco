@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -43,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,12 +57,17 @@ import com.subhanismayil.budget.ui.theme.TextSecondary
 import com.subhanismayil.budget.ui.theme.colorForCategory
 import kotlinx.coroutines.launch
 
+private sealed interface ListItem {
+    data class Header(val label: String) : ListItem
+    data class Tx(val tx: RecentTx, val globalIdx: Int) : ListItem
+}
+
 private const val EDITABLE_TOP_N = 5
 
 // "Wed May 13 2026 00:00:00 GMT+0400 (...)" → "13 May 2026"
 private fun formatDate(raw: String): String {
     val p = raw.trim().split(Regex("\\s+"))
-    return if (p.size >= 4) "${p[2]} ${p[1]} ${p[3]}" else raw
+    return if (p.size >= 4) "${p[2]} ${p[1]}, ${p[3]}" else raw
 }
 
 // "Sat Dec 30 1899 13:57:00 GMT+0400 (...)" or "13:57:00" → "13:57"
@@ -170,18 +173,33 @@ private fun Body(
                         Text("No transactions yet", color = TextSecondary)
                     }
                 } else {
+                    val grouped = buildList<ListItem> {
+                        var lastLabel = ""
+                        recent.forEachIndexed { idx, tx ->
+                            val label = formatDate(tx.date)
+                            if (label != lastLabel) {
+                                add(ListItem.Header(label))
+                                lastLabel = label
+                            }
+                            add(ListItem.Tx(tx, idx))
+                        }
+                    }
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
-                        items(recent.size) { idx ->
-                            val tx = recent[idx]
-                            val editable = idx < EDITABLE_TOP_N && tx.editable
-                            TxRow(
-                                tx = tx,
-                                editable = editable,
-                                onClick = { if (editable) onEdit(tx) }
-                            )
+                        for (listItem in grouped) {
+                            when (listItem) {
+                                is ListItem.Header -> item(key = "h_${listItem.label}") {
+                                    DateHeader(listItem.label)
+                                }
+                                is ListItem.Tx -> item(
+                                    key = listItem.tx.id.ifEmpty { "t_${listItem.globalIdx}" }
+                                ) {
+                                    val editable = listItem.globalIdx < EDITABLE_TOP_N && listItem.tx.editable
+                                    TxRow(listItem.tx, editable) { if (editable) onEdit(listItem.tx) }
+                                }
+                            }
                         }
                         if (recent.size > EDITABLE_TOP_N) {
                             item {
@@ -236,22 +254,15 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
                 color = TextPrimary
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    formatDate(tx.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
                 if (tx.time.isNotEmpty()) {
                     Text(
-                        "  ·  ${formatTime(tx.time)}",
+                        formatTime(tx.time),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                         maxLines = 1
                     )
+                    Spacer(Modifier.width(6.dp))
                 }
-                Spacer(Modifier.width(6.dp))
                 WhoChip(tx.who)
                 if (tx.note.isNotEmpty()) {
                     Spacer(Modifier.width(6.dp))
@@ -289,6 +300,18 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun DateHeader(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        color = TextSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp, bottom = 2.dp, start = 2.dp)
+    )
 }
 
 @Composable

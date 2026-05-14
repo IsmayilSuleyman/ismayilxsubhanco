@@ -130,6 +130,29 @@ data class Stats(
 )
 
 object StatsComputer {
+    // Produces a lexicographically sortable "YYYY-MM-DD HH:MM:SS" key from the
+    // raw date/time strings returned by the Apps Script, which are JS Date
+    // serialisations like "Wed May 13 2026 00:00:00 GMT+0400 (...)".
+    // Falls back to the raw strings if the format doesn't match.
+    private val MONTH_NUM = mapOf(
+        "Jan" to "01", "Feb" to "02", "Mar" to "03", "Apr" to "04",
+        "May" to "05", "Jun" to "06", "Jul" to "07", "Aug" to "08",
+        "Sep" to "09", "Oct" to "10", "Nov" to "11", "Dec" to "12"
+    )
+
+    private fun sortKey(date: String, time: String): String {
+        val dp = date.trim().split(Regex("\\s+"))
+        if (dp.size >= 4) {
+            val year  = dp[3]
+            val month = MONTH_NUM[dp[1]] ?: "00"
+            val day   = dp[2].padStart(2, '0')
+            val tp    = time.trim().split(Regex("\\s+"))
+            val hms   = if (tp.size >= 5) tp[4] else tp[0]
+            return "$year-$month-$day $hms"
+        }
+        return "$date $time"
+    }
+
     fun compute(rows: List<Map<String, String>>): Stats {
         val filtered = rows.filter { CsvParser.isExpenseRow(it) }
         val perPerson = People.INDIVIDUALS.associateWith { PersonStats() }
@@ -194,7 +217,7 @@ object StatsComputer {
                     isTopUp = CsvParser.isTopUp(it)
                 )
             }
-            .sortedByDescending { it.date + " " + it.time }
+            .sortedByDescending { sortKey(it.date, it.time) }
 
         return Stats(
             total = total,
