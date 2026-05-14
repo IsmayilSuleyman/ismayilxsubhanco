@@ -72,7 +72,9 @@ import com.subhanismayil.budget.ui.theme.SurfaceGlassStrong
 import com.subhanismayil.budget.ui.theme.TextPrimary
 import com.subhanismayil.budget.ui.theme.TextSecondary
 import com.subhanismayil.budget.ui.theme.colorForCategory
+import androidx.compose.ui.text.style.TextOverflow
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -315,11 +317,12 @@ private fun ExpensesCard(stats: Stats?) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val cats = stats?.categories.orEmpty().filter { it.second > 0.0049 }
+                val totalSpent = (stats?.totalSpent ?: 1.0).coerceAtLeast(0.0001)
                 if (cats.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .size(140.dp)
-                            .background(Color(0x08000000), RoundedCornerShape(70.dp)),
+                            .size(152.dp)
+                            .background(Color(0x08000000), RoundedCornerShape(76.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("No data", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
@@ -329,29 +332,38 @@ private fun ExpensesCard(stats: Stats?) {
                         slices = cats.map { (c, amt) -> DonutSlice(colorForCategory(c.key), amt) },
                         centerLabel = formatAznCompact(stats!!.totalSpent),
                         centerSubLabel = "spent",
-                        diameter = 140.dp,
+                        diameter = 152.dp,
                         modifier = Modifier
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(20.dp))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     cats.take(6).forEach { (cat, amt) ->
+                        val pct = (amt / totalSpent * 100).roundToInt().coerceAtLeast(1)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(10.dp)
-                                    .background(colorForCategory(cat.key), RoundedCornerShape(3.dp))
+                                    .size(9.dp)
+                                    .background(colorForCategory(cat.key), RoundedCornerShape(50))
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 cat.key,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Text(
+                                "$pct%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextSecondary.copy(alpha = 0.6f)
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 formatAznCompact(amt),
                                 style = MaterialTheme.typography.titleSmall,
