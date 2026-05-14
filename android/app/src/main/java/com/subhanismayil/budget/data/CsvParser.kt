@@ -122,16 +122,42 @@ data class Stats(
     val totalSpent: Double,
     val perPerson: Map<String, PersonStats>,
     val categories: List<Pair<Category, Double>>,
+    // categoryKey → (İsmayıl spent, Sübhan spent); shared txs split 50/50
+    val categoryBreakdown: Map<String, Pair<Double, Double>> = emptyMap(),
     val recent: List<RecentTx>,
     val txCount: Int,
-    val sheet2: Sheet2Summary? = null  // null until Sheet2 is loaded
+    val sheet2: Sheet2Summary? = null
 )
 
 object StatsComputer {
+    // Produces a lexicographically sortable "YYYY-MM-DD HH:MM:SS" key from the
+    // raw date/time strings returned by the Apps Script, which are JS Date
+    // serialisations like "Wed May 13 2026 00:00:00 GMT+0400 (...)".
+    // Falls back to the raw strings if the format doesn't match.
+    private val MONTH_NUM = mapOf(
+        "Jan" to "01", "Feb" to "02", "Mar" to "03", "Apr" to "04",
+        "May" to "05", "Jun" to "06", "Jul" to "07", "Aug" to "08",
+        "Sep" to "09", "Oct" to "10", "Nov" to "11", "Dec" to "12"
+    )
+
+    private fun sortKey(date: String, time: String): String {
+        val dp = date.trim().split(Regex("\\s+"))
+        if (dp.size >= 4) {
+            val year  = dp[3]
+            val month = MONTH_NUM[dp[1]] ?: "00"
+            val day   = dp[2].padStart(2, '0')
+            val tp    = time.trim().split(Regex("\\s+"))
+            val hms   = if (tp.size >= 5) tp[4] else tp[0]
+            return "$year-$month-$day $hms"
+        }
+        return "$date $time"
+    }
+
     fun compute(rows: List<Map<String, String>>): Stats {
         val filtered = rows.filter { CsvParser.isExpenseRow(it) }
         val perPerson = People.INDIVIDUALS.associateWith { PersonStats() }
         val catTotals = Categories.EXPENSE.associate { it.key to 0.0 }.toMutableMap()
+        val catBreakdown = mutableMapOf<String, Pair<Double, Double>>() // key → (ismayil, subhan)
         var totalSpent = 0.0
 
         for (r in filtered) {
@@ -159,8 +185,16 @@ object StatsComputer {
             }
 
             if (catKey in catTotals) {
-                catTotals[catKey] = catTotals.getValue(catKey) + (-amt)
-                totalSpent += -amt
+                val spent = -amt
+                catTotals[catKey] = catTotals.getValue(catKey) + spent
+                totalSpent += spent
+                val (curI, curS) = catBreakdown.getOrDefault(catKey, 0.0 to 0.0)
+                catBreakdown[catKey] = when (who) {
+                    People.ISMAYIL -> (curI + spent) to curS
+                    People.SUBHAN  -> curI to (curS + spent)
+                    People.SHARED  -> (curI + spent / 2.0) to (curS + spent / 2.0)
+                    else           -> curI to curS
+                }
             }
         }
 
@@ -183,13 +217,14 @@ object StatsComputer {
                     isTopUp = CsvParser.isTopUp(it)
                 )
             }
-            .sortedByDescending { it.date + " " + it.time }
+            .sortedByDescending { sortKey(it.date, it.time) }
 
         return Stats(
             total = total,
             totalSpent = totalSpent,
             perPerson = perPerson,
             categories = cats,
+            categoryBreakdown = catBreakdown,
             recent = recent,
             txCount = filtered.size
         )
