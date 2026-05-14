@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class TransactionRequest(
     val amount: Double,
     val isTopUp: Boolean,
+    val isWithdrawal: Boolean = false,
     val transactionBy: String,
     val category: String,
     val note: String = "",

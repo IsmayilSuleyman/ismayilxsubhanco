@@ -114,7 +114,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
     fun submit() {
         val s = _state.value
         if (!s.canSubmit || s.submitting) return
-        val amount = s.signedAmount ?: return
+        val amount = EntryUiState.parseAmountInput(s.amount) ?: return
         val who = s.who ?: return
         val category = if (s.isTopUp) {
             Categories.TOP_UP_FULL
@@ -125,6 +125,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
         val req = TransactionRequest(
             amount = amount,
             isTopUp = s.isTopUp,
+            isWithdrawal = s.isWithdrawal,
             transactionBy = who,
             category = category,
             note = s.note.trim()
