@@ -21,3 +21,9 @@ data class TransactionResponse(
     val id: String? = null,
     val deleted: String? = null
 )
+
+@Serializable
+data class BudgetsRequest(
+    val action: String = "saveBudgets",
+    val budgets: Map<String, Double>
+)

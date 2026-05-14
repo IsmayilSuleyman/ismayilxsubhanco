@@ -81,6 +81,40 @@ object BudgetApi {
             }
         }
 
+    suspend fun fetchBudgets(webAppUrl: String): Map<String, Double> =
+        withContext(Dispatchers.IO) {
+            val url = "$webAppUrl?action=getBudgets&_=${System.currentTimeMillis()}"
+            val request = Request.Builder()
+                .url(url)
+                .header("Cache-Control", "no-store")
+                .build()
+            client.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) error("HTTP ${resp.code}")
+                val text = resp.body?.string().orEmpty()
+                val root = json.parseToJsonElement(text).jsonObject
+                val ok = root["ok"]?.jsonPrimitive?.content?.toBoolean() ?: false
+                if (!ok) error(root["error"]?.jsonPrimitive?.content ?: "getBudgets failed")
+                val obj = root["budgets"]?.jsonObject ?: return@use emptyMap()
+                obj.entries.associate { (k, v) -> k to v.jsonPrimitive.content.toDouble() }
+            }
+        }
+
+    suspend fun saveBudgets(webAppUrl: String, budgets: Map<String, Double>): TransactionResponse =
+        withContext(Dispatchers.IO) {
+            val body = json.encodeToString(BudgetsRequest.serializer(), BudgetsRequest(budgets = budgets))
+                .toRequestBody(jsonMediaType)
+            val request = Request.Builder()
+                .url(webAppUrl)
+                .post(body)
+                .build()
+            client.newCall(request).execute().use { resp ->
+                val text = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) return@use TransactionResponse(ok = false, error = "HTTP ${resp.code}: ${text.take(200)}")
+                runCatching { json.decodeFromString(TransactionResponse.serializer(), text) }
+                    .getOrElse { TransactionResponse(ok = false, error = "Bad response: ${text.take(200)}") }
+            }
+        }
+
     // Fetches all transaction rows from the Apps Script ?action=list endpoint.
     // Returns a list of header-keyed maps, matching the shape CsvParser used to produce.
     suspend fun fetchTransactions(webAppUrl: String): List<Map<String, String>> =
