@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -471,7 +470,7 @@ private fun AddTransactionCard(
                     color = TextPrimary,
                     modifier = Modifier.weight(1f)
                 )
-                ExpenseTopUpToggle(isTopUp = state.isTopUp, onChange = onTopUp)
+                TypeToggle(isTopUp = state.isTopUp, onChange = onTopUp)
             }
 
             if (state.isTopUp) {
@@ -503,7 +502,12 @@ private fun AddTransactionCard(
                         PillButton(
                             label = who,
                             selected = state.who == who,
-                            onClick = { onWho(who) }
+                            onClick = { onWho(who) },
+                            accentColor = when (who) {
+                                People.ISMAYIL -> Color(0xFF6366F1)
+                                People.SUBHAN  -> Color(0xFF8B5CF6)
+                                else           -> Color(0xFF0EA5E9)
+                            }
                         )
                     }
                 }
@@ -541,6 +545,7 @@ private fun AddTransactionCard(
                         suffix = { Text("₼", color = TextSecondary) },
                         placeholder = { Text("0.00", color = TextSecondary) },
                         textStyle = MaterialTheme.typography.titleLarge,
+                        shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -552,6 +557,7 @@ private fun AddTransactionCard(
                         onValueChange = onNote,
                         singleLine = true,
                         placeholder = { Text("Optional note", color = TextSecondary) },
+                        shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -559,23 +565,27 @@ private fun AddTransactionCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = onSubmit,
-                    enabled = state.canSubmit && !state.submitting,
+                val canSubmit = state.canSubmit && !state.submitting
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentPrimary,
-                        contentColor = Color.White,
-                        disabledContainerColor = AccentPrimary.copy(alpha = 0.5f)
-                    )
+                        .height(56.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    AccentPrimary.copy(alpha = if (canSubmit) 1f else 0.45f),
+                                    AccentSecondary.copy(alpha = if (canSubmit) 1f else 0.45f)
+                                )
+                            )
+                        )
+                        .clickable(enabled = canSubmit, onClick = onSubmit),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (state.submitting) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text("Submit Transaction", style = MaterialTheme.typography.titleMedium)
+                        Text("Submit Transaction", style = MaterialTheme.typography.titleMedium, color = Color.White)
                     }
                 }
                 OutlinedButton(
@@ -593,19 +603,29 @@ private fun AddTransactionCard(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelSmall,
-        color = TextSecondary,
-        letterSpacing = 0.5.sp
-    )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            Modifier
+                .width(3.dp)
+                .height(12.dp)
+                .background(AccentPrimary.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp
+        )
+    }
 }
 
 @Composable
-private fun ExpenseTopUpToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
+private fun TypeToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .background(Color(0x0A000000), RoundedCornerShape(12.dp))
+            .border(1.dp, Color(0x10000000), RoundedCornerShape(12.dp))
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -616,12 +636,15 @@ private fun ExpenseTopUpToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) Color.White else Color.Transparent
-    val elevation = if (selected) 2.dp else 0.dp
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(bg)
+            .background(
+                if (selected)
+                    Brush.horizontalGradient(listOf(AccentPrimary, AccentSecondary))
+                else
+                    Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -629,17 +652,22 @@ private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) AccentPrimary else TextSecondary,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            color = if (selected) Color.White else TextSecondary,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }
 
 @Composable
-private fun PillButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) AccentPrimary else Color.Transparent
+private fun PillButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    accentColor: Color = AccentPrimary
+) {
+    val bg = if (selected) accentColor else Color(0x08000000)
     val fg = if (selected) Color.White else TextPrimary
-    val border = if (selected) AccentPrimary else Color(0x1A000000)
+    val border = if (selected) Color.Transparent else Color(0x18000000)
     OutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -647,15 +675,16 @@ private fun PillButton(label: String, selected: Boolean, onClick: () -> Unit) {
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg, contentColor = fg),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) {
     val accent = colorForCategory(cat.key)
-    val bg = if (selected) accent.copy(alpha = 0.15f) else Color.Transparent
-    val border = if (selected) accent else Color(0x1A000000)
+    val bg = if (selected) accent else Color(0x08000000)
+    val border = if (selected) Color.Transparent else Color(0x18000000)
+    val labelColor = if (selected) Color.White else TextPrimary
     OutlinedButton(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -665,7 +694,12 @@ private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) 
     ) {
         Text(cat.emoji, style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.width(6.dp))
-        Text(cat.key, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+        Text(
+            cat.key,
+            style = MaterialTheme.typography.bodyMedium,
+            color = labelColor,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 
@@ -673,9 +707,9 @@ private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) 
 @Composable
 private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = AccentPrimary,
-    unfocusedBorderColor = Color(0x1A000000),
-    focusedContainerColor = Color.White.copy(alpha = 0.5f),
-    unfocusedContainerColor = Color.Transparent,
+    unfocusedBorderColor = Color(0x18000000),
+    focusedContainerColor = Color.White.copy(alpha = 0.7f),
+    unfocusedContainerColor = Color(0x08000000),
     cursorColor = AccentPrimary
 )
 
