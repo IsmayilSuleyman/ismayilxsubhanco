@@ -507,57 +507,76 @@ private fun BudgetsCard(
     }
 
     GlassCard {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Budgets",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Filled.Close,
-                        contentDescription = "Close",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Budgets",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary,
+                        modifier = Modifier.weight(1f)
                     )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Close",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
+                Text(
+                    "Set a monthly limit per category. Leave blank to clear.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
             }
 
             SectionLabel("MONTHLY LIMITS")
 
-            Categories.EXPENSE.forEach { cat ->
-                val spent = spentMap[cat.key]
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        cat.full,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    if (spent != null) {
-                        Text(
-                            formatAznCompact(spent),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = TextSecondary
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Categories.EXPENSE.forEach { cat ->
+                    val spent = spentMap[cat.key]?.takeIf { it > 0.005 }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x06000000))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(colorForCategory(cat.key), RoundedCornerShape(50))
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text(
+                                cat.full,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextPrimary
+                            )
+                            if (spent != null) {
+                                Text(
+                                    "${formatAznCompact(spent)} spent",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = TextSecondary.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        OutlinedTextField(
+                            value = drafts[cat.key] ?: "",
+                            onValueChange = { drafts = drafts + (cat.key to it) },
+                            modifier = Modifier.width(82.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            suffix = { Text("₼", color = TextSecondary) },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = textFieldColors(),
+                            textStyle = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    OutlinedTextField(
-                        value = drafts[cat.key] ?: "",
-                        onValueChange = { drafts = drafts + (cat.key to it) },
-                        modifier = Modifier.width(90.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        suffix = { Text("₼", color = TextSecondary) },
-                        placeholder = { Text("—", color = TextSecondary) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = textFieldColors(),
-                        textStyle = MaterialTheme.typography.bodyMedium
-                    )
                 }
             }
 
