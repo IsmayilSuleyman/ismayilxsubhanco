@@ -462,7 +462,7 @@ private fun AddTransactionCard(
     onHistory: () -> Unit
 ) {
     GlassCard {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Add Transaction",
@@ -474,9 +474,9 @@ private fun AddTransactionCard(
             }
 
             if (state.isTopUp) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionLabel("TYPE")
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PillButton(
                             label = "+ Deposit",
                             selected = !state.isWithdrawal,
@@ -491,11 +491,11 @@ private fun AddTransactionCard(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel("BY WHO")
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val choices = if (state.isTopUp) People.INDIVIDUALS else People.ALL
                     choices.forEach { who ->
@@ -514,11 +514,11 @@ private fun AddTransactionCard(
             }
 
             if (!state.isTopUp) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionLabel("CATEGORY")
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Categories.EXPENSE.forEach { cat ->
                             CategoryChip(
@@ -531,7 +531,7 @@ private fun AddTransactionCard(
                 }
             }
 
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     SectionLabel("AMOUNT")
                     OutlinedTextField(
@@ -569,8 +569,8 @@ private fun AddTransactionCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
@@ -590,8 +590,8 @@ private fun AddTransactionCard(
                 }
                 OutlinedButton(
                     onClick = onHistory,
-                    modifier = Modifier.height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, Color(0x1A000000)),
                 ) {
                     Text("History", color = TextPrimary)
@@ -607,7 +607,7 @@ private fun SectionLabel(text: String) {
         Box(
             Modifier
                 .width(3.dp)
-                .height(12.dp)
+                .height(10.dp)
                 .background(AccentPrimary.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
         )
         Text(
@@ -646,7 +646,7 @@ private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
                     Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -670,12 +670,12 @@ private fun PillButton(
     val border = if (selected) Color.Transparent else Color(0x18000000)
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg, contentColor = fg),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+        Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
@@ -687,16 +687,16 @@ private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) 
     val labelColor = if (selected) Color.White else TextPrimary
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(cat.emoji, style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.width(6.dp))
+        Text(cat.emoji, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(4.dp))
         Text(
             cat.key,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = labelColor,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
