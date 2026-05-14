@@ -27,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,7 +72,9 @@ import com.subhanismayil.budget.ui.theme.SurfaceGlassStrong
 import com.subhanismayil.budget.ui.theme.TextPrimary
 import com.subhanismayil.budget.ui.theme.TextSecondary
 import com.subhanismayil.budget.ui.theme.colorForCategory
+import androidx.compose.ui.text.style.TextOverflow
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -316,11 +317,12 @@ private fun ExpensesCard(stats: Stats?) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val cats = stats?.categories.orEmpty().filter { it.second > 0.0049 }
+                val totalSpent = (stats?.totalSpent ?: 1.0).coerceAtLeast(0.0001)
                 if (cats.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .size(140.dp)
-                            .background(Color(0x08000000), RoundedCornerShape(70.dp)),
+                            .size(152.dp)
+                            .background(Color(0x08000000), RoundedCornerShape(76.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("No data", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
@@ -330,29 +332,38 @@ private fun ExpensesCard(stats: Stats?) {
                         slices = cats.map { (c, amt) -> DonutSlice(colorForCategory(c.key), amt) },
                         centerLabel = formatAznCompact(stats!!.totalSpent),
                         centerSubLabel = "spent",
-                        diameter = 140.dp,
+                        diameter = 152.dp,
                         modifier = Modifier
                     )
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(20.dp))
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     cats.take(6).forEach { (cat, amt) ->
+                        val pct = (amt / totalSpent * 100).roundToInt().coerceAtLeast(1)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(10.dp)
-                                    .background(colorForCategory(cat.key), RoundedCornerShape(3.dp))
+                                    .size(9.dp)
+                                    .background(colorForCategory(cat.key), RoundedCornerShape(50))
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 cat.key,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Text(
+                                "$pct%",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = TextSecondary.copy(alpha = 0.6f)
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 formatAznCompact(amt),
                                 style = MaterialTheme.typography.titleSmall,
@@ -463,7 +474,7 @@ private fun AddTransactionCard(
     onHistory: () -> Unit
 ) {
     GlassCard {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Add Transaction",
@@ -471,13 +482,13 @@ private fun AddTransactionCard(
                     color = TextPrimary,
                     modifier = Modifier.weight(1f)
                 )
-                ExpenseTopUpToggle(isTopUp = state.isTopUp, onChange = onTopUp)
+                TypeToggle(isTopUp = state.isTopUp, onChange = onTopUp)
             }
 
             if (state.isTopUp) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionLabel("TYPE")
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PillButton(
                             label = "+ Deposit",
                             selected = !state.isWithdrawal,
@@ -492,29 +503,34 @@ private fun AddTransactionCard(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel("BY WHO")
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val choices = if (state.isTopUp) People.INDIVIDUALS else People.ALL
                     choices.forEach { who ->
                         PillButton(
                             label = who,
                             selected = state.who == who,
-                            onClick = { onWho(who) }
+                            onClick = { onWho(who) },
+                            accentColor = when (who) {
+                                People.ISMAYIL -> Color(0xFF6366F1)
+                                People.SUBHAN  -> Color(0xFF8B5CF6)
+                                else           -> Color(0xFF0EA5E9)
+                            }
                         )
                     }
                 }
             }
 
             if (!state.isTopUp) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionLabel("CATEGORY")
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Categories.EXPENSE.forEach { cat ->
                             CategoryChip(
@@ -527,7 +543,7 @@ private fun AddTransactionCard(
                 }
             }
 
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     SectionLabel("AMOUNT")
                     OutlinedTextField(
@@ -541,6 +557,7 @@ private fun AddTransactionCard(
                         suffix = { Text("₼", color = TextSecondary) },
                         placeholder = { Text("0.00", color = TextSecondary) },
                         textStyle = MaterialTheme.typography.titleLarge,
+                        shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -552,6 +569,7 @@ private fun AddTransactionCard(
                         onValueChange = onNote,
                         singleLine = true,
                         placeholder = { Text("Optional note", color = TextSecondary) },
+                        shape = RoundedCornerShape(12.dp),
                         colors = textFieldColors(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -559,29 +577,33 @@ private fun AddTransactionCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = onSubmit,
-                    enabled = state.canSubmit && !state.submitting,
+                val canSubmit = state.canSubmit && !state.submitting
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentPrimary,
-                        contentColor = Color.White,
-                        disabledContainerColor = AccentPrimary.copy(alpha = 0.5f)
-                    )
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    AccentPrimary.copy(alpha = if (canSubmit) 1f else 0.45f),
+                                    AccentSecondary.copy(alpha = if (canSubmit) 1f else 0.45f)
+                                )
+                            )
+                        )
+                        .clickable(enabled = canSubmit, onClick = onSubmit),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (state.submitting) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text("Submit Transaction", style = MaterialTheme.typography.titleMedium)
+                        Text("Submit Transaction", style = MaterialTheme.typography.titleMedium, color = Color.White)
                     }
                 }
                 OutlinedButton(
                     onClick = onHistory,
-                    modifier = Modifier.height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, Color(0x1A000000)),
                 ) {
                     Text("History", color = TextPrimary)
@@ -593,19 +615,29 @@ private fun AddTransactionCard(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelSmall,
-        color = TextSecondary,
-        letterSpacing = 0.5.sp
-    )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            Modifier
+                .width(3.dp)
+                .height(10.dp)
+                .background(AccentPrimary.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+        )
+        Text(
+            text,
+            style = MaterialTheme.typography.labelMedium,
+            color = TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp
+        )
+    }
 }
 
 @Composable
-private fun ExpenseTopUpToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
+private fun TypeToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .background(Color(0x0A000000), RoundedCornerShape(12.dp))
+            .border(1.dp, Color(0x10000000), RoundedCornerShape(12.dp))
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -616,56 +648,70 @@ private fun ExpenseTopUpToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) Color.White else Color.Transparent
-    val elevation = if (selected) 2.dp else 0.dp
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(bg)
+            .background(
+                if (selected)
+                    Brush.horizontalGradient(listOf(AccentPrimary, AccentSecondary))
+                else
+                    Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) AccentPrimary else TextSecondary,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            color = if (selected) Color.White else TextSecondary,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
 }
 
 @Composable
-private fun PillButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) AccentPrimary else Color.Transparent
+private fun PillButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    accentColor: Color = AccentPrimary
+) {
+    val bg = if (selected) accentColor else Color(0x08000000)
     val fg = if (selected) Color.White else TextPrimary
-    val border = if (selected) AccentPrimary else Color(0x1A000000)
+    val border = if (selected) Color.Transparent else Color(0x18000000)
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg, contentColor = fg),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+        Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
 @Composable
 private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) {
     val accent = colorForCategory(cat.key)
-    val bg = if (selected) accent.copy(alpha = 0.15f) else Color.Transparent
-    val border = if (selected) accent else Color(0x1A000000)
+    val bg = if (selected) accent else Color(0x08000000)
+    val border = if (selected) Color.Transparent else Color(0x18000000)
+    val labelColor = if (selected) Color.White else TextPrimary
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(cat.emoji, style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.width(6.dp))
-        Text(cat.key, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+        Text(cat.emoji, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(4.dp))
+        Text(
+            cat.key,
+            style = MaterialTheme.typography.bodySmall,
+            color = labelColor,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 
@@ -673,9 +719,9 @@ private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) 
 @Composable
 private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = AccentPrimary,
-    unfocusedBorderColor = Color(0x1A000000),
-    focusedContainerColor = Color.White.copy(alpha = 0.5f),
-    unfocusedContainerColor = Color.Transparent,
+    unfocusedBorderColor = Color(0x18000000),
+    focusedContainerColor = Color.White.copy(alpha = 0.7f),
+    unfocusedContainerColor = Color(0x08000000),
     cursorColor = AccentPrimary
 )
 
