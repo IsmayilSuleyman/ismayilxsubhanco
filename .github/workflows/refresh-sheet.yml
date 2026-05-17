@@ -24,7 +24,7 @@ jobs:
 
       - name: Download published CSV
         run: |
-          curl -sSL --fail --retry 3 \
+          curl -sSL --retry 3 \
             "https://docs.google.com/spreadsheets/d/11k9k2bbzl1q-7pkt1vhspOiHmeWaMpaSzDOS6d5EsoY/pub?output=csv" \
             -o sheet.csv
           test -s sheet.csv
