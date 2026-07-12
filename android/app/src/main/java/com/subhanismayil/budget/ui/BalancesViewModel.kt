@@ -47,7 +47,8 @@ class BalancesViewModel : ViewModel() {
             }
             _state.value = result.fold(
                 onSuccess = { (stats, budgets) -> BalancesUiState(loading = false, stats = stats, budgets = budgets) },
-                onFailure = { BalancesUiState(loading = false, error = it.message ?: "load failed") }
+                // Keep the last good data visible when a refresh fails.
+                onFailure = { _state.value.copy(loading = false, error = it.message ?: "load failed") }
             )
         }
     }

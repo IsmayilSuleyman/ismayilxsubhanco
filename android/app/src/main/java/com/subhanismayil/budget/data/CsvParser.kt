@@ -83,12 +83,18 @@ data class RecentTx(
 }
 
 // Pre-computed summary read directly from Sheet2.
+data class Sheet2Category(
+    val name: String,
+    val total: Double,
+    val ismayil: Double,
+    val subhan: Double
+)
+
 data class Sheet2Summary(
     val ismayilBalance: Double,
     val subhanBalance: Double,
     val totalBalance: Double,
-    // category key → (total, ismayil, subhan)
-    val categoryTotals: List<Triple<String, Double, Double>> // (total, ismayil, subhan) per category
+    val categoryTotals: List<Sheet2Category>
 )
 
 object Sheet2Parser {
@@ -107,10 +113,12 @@ object Sheet2Parser {
         val cats = (6..14).mapNotNull { i ->
             val rawName = cell(i, 0).trim()
             if (rawName.isEmpty()) return@mapNotNull null
-            val total   = num(cell(i, 1))
-            val ismayil = num(cell(i, 2))
-            val subhan  = num(cell(i, 3))
-            Triple(total, ismayil, subhan)
+            Sheet2Category(
+                name = rawName,
+                total = num(cell(i, 1)),
+                ismayil = num(cell(i, 2)),
+                subhan = num(cell(i, 3))
+            )
         }
 
         return Sheet2Summary(ismayilBalance, subhanBalance, totalBalance, cats)
@@ -126,7 +134,9 @@ data class Stats(
     val categoryBreakdown: Map<String, Pair<Double, Double>> = emptyMap(),
     val recent: List<RecentTx>,
     val txCount: Int,
-    val sheet2: Sheet2Summary? = null
+    val sheet2: Sheet2Summary? = null,
+    // Per-month totals, newest month first.
+    val monthly: List<MonthStats> = emptyList()
 )
 
 object StatsComputer {
@@ -226,7 +236,8 @@ object StatsComputer {
             categories = cats,
             categoryBreakdown = catBreakdown,
             recent = recent,
-            txCount = filtered.size
+            txCount = filtered.size,
+            monthly = MonthlyStatsComputer.compute(recent)
         )
     }
 }
