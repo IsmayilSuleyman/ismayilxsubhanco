@@ -3,13 +3,17 @@
 Native Kotlin + Jetpack Compose app for logging transactions into the
 shared Google Sheet that powers the static site at the repo root.
 
-Two screens:
+Three tabs (floating bottom navigation):
 
-- **Add transaction** — top-up toggle, amount, who (Sübhan / İsmayıl /
-  Shared), category chips, optional note, Submit. Posts to the
+- **Home** — total + per-person balances on a health-tinted gradient
+  card, category donut with budget bars, and the Add Transaction form
+  (top-up toggle, amount, who, category chips, note). Posts to the
   Apps Script web endpoint, which appends a row to the sheet.
-- **Balances** — fetches the same `sheet.csv` the static site reads,
-  shows total balance, per-person balances, and category breakdown.
+- **Months** — spending by month: an animated trend bar chart (tap a
+  bar to inspect a month) plus expandable per-month cards with top-ups,
+  per-person split, and category breakdown.
+- **History** — all transactions grouped by day with daily totals;
+  the five most recent rows can be edited or deleted.
 
 ## Prerequisites (one time, on Windows)
 
