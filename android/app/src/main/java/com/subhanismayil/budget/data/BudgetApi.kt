@@ -74,7 +74,10 @@ object BudgetApi {
                 val root = json.parseToJsonElement(text).jsonObject
                 val ok = root["ok"]?.jsonPrimitive?.content?.toBoolean() ?: false
                 if (!ok) error(root["error"]?.jsonPrimitive?.content ?: "summary failed")
-                val arr = root["values"]?.jsonArray ?: return@use emptyList()
+                // An old deployment answers every GET with the ping payload
+                // (no "values"). Distinguish that from a genuinely empty grid.
+                val arr = root["values"]?.jsonArray
+                    ?: error("Apps Script deployment is outdated — redeploy Code.gs")
                 arr.map { row ->
                     row.jsonArray.map { cell -> cell.jsonPrimitive.content }
                 }
@@ -130,7 +133,10 @@ object BudgetApi {
                 val root = json.parseToJsonElement(text).jsonObject
                 val ok = root["ok"]?.jsonPrimitive?.content?.toBoolean() ?: false
                 if (!ok) error(root["error"]?.jsonPrimitive?.content ?: "list failed")
-                val arr = root["rows"]?.jsonArray ?: return@use emptyList()
+                // Same stale-deployment guard as fetchSummary: a current
+                // deployment always includes "rows", even when empty.
+                val arr = root["rows"]?.jsonArray
+                    ?: error("Apps Script deployment is outdated — redeploy Code.gs")
                 arr.map { elem ->
                     elem.jsonObject.entries.associate { (k, v) ->
                         k to v.jsonPrimitive.content

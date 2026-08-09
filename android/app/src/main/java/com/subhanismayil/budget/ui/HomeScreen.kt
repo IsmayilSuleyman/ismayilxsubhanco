@@ -12,16 +12,21 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -67,11 +72,11 @@ import com.subhanismayil.budget.data.People
 import com.subhanismayil.budget.data.Stats
 import com.subhanismayil.budget.ui.theme.AccentPrimary
 import com.subhanismayil.budget.ui.theme.AccentSecondary
-import com.subhanismayil.budget.ui.theme.BgLight
+import com.subhanismayil.budget.ui.theme.IsmayilColor
 import com.subhanismayil.budget.ui.theme.Negative
 import com.subhanismayil.budget.ui.theme.Positive
-import com.subhanismayil.budget.ui.theme.SurfaceGlass
-import com.subhanismayil.budget.ui.theme.SurfaceGlassStrong
+import com.subhanismayil.budget.ui.theme.SharedColor
+import com.subhanismayil.budget.ui.theme.SubhanColor
 import com.subhanismayil.budget.ui.theme.TextPrimary
 import com.subhanismayil.budget.ui.theme.TextSecondary
 import com.subhanismayil.budget.ui.theme.colorForCategory
@@ -85,6 +90,7 @@ import kotlin.math.roundToInt
 @Composable
 fun HomeScreen(
     onShowHistory: () -> Unit,
+    onShowMonthly: () -> Unit = {},
     entryViewModel: EntryViewModel = viewModel(),
     balancesViewModel: BalancesViewModel = viewModel()
 ) {
@@ -106,7 +112,8 @@ fun HomeScreen(
     }
 
     Scaffold(
-        containerColor = BgLight,
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets.statusBars,
         snackbarHost = { SnackbarHost(snackbarHost) }
     ) { padding ->
         Content(
@@ -121,6 +128,7 @@ fun HomeScreen(
             onNote = entryViewModel::setNote,
             onSubmit = entryViewModel::submit,
             onHistory = onShowHistory,
+            onMonthly = onShowMonthly,
             onRefresh = balancesViewModel::refresh,
             budgets = balancesState.budgets,
             onSaveBudgets = balancesViewModel::saveBudgets
@@ -142,6 +150,7 @@ private fun Content(
     onNote: (String) -> Unit,
     onSubmit: () -> Unit,
     onHistory: () -> Unit,
+    onMonthly: () -> Unit,
     onRefresh: () -> Unit,
     budgets: Map<String, Double>,
     onSaveBudgets: (Map<String, Double>) -> Unit
@@ -156,12 +165,19 @@ private fun Content(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        ScreenHeader(
+            title = "Shared Budget",
+            subtitle = "${People.ISMAYIL} & ${People.SUBHAN}",
+            trailing = { RefreshButton(loading = balancesState.loading, onClick = onRefresh) }
+        )
+        balancesState.error?.let { ErrorBanner(message = it, onRetry = onRefresh) }
         BalanceCard(stats = balancesState.stats, loading = balancesState.loading, onRefresh = onRefresh)
         ExpensesCard(
             stats = balancesState.stats,
             budgets = budgets,
             budgetsOpen = showBudgets,
-            onBudgets = { showBudgets = !showBudgets }
+            onBudgets = { showBudgets = !showBudgets },
+            onMonthly = onMonthly
         )
         if (showBudgets) {
             BudgetsCard(
@@ -187,34 +203,42 @@ private fun Content(
 }
 
 @Composable
-private fun TitlePill() {
-    Box(
+private fun ErrorBanner(message: String, onRetry: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color(0x1A000000), RoundedCornerShape(16.dp))
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
+            .clip(RoundedCornerShape(14.dp))
+            .background(Negative.copy(alpha = 0.10f))
+            .border(1.dp, Negative.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        Icon(
+            Icons.Filled.Warning,
+            contentDescription = null,
+            tint = Negative,
+            modifier = Modifier.size(16.dp)
+        )
         Text(
-            "SHARED BUDGET",
-            style = MaterialTheme.typography.titleMedium,
-            color = TextSecondary,
-            letterSpacing = 2.sp
+            "Couldn't refresh: $message",
+            style = MaterialTheme.typography.bodySmall,
+            color = Negative,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            "Retry",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = Negative,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onRetry)
+                .padding(horizontal = 6.dp, vertical = 4.dp)
         )
     }
-}
-
-@Composable
-private fun GlassCard(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(SurfaceGlass, RoundedCornerShape(22.dp))
-            .border(1.dp, Color(0x14000000), RoundedCornerShape(22.dp))
-    ) { content() }
 }
 
 // Balance-health gradient — full green→red spectrum, no purple.
@@ -239,17 +263,45 @@ private fun balanceGradient(stats: Stats?): Pair<Color, Color> {
 @Composable
 private fun BalanceCard(stats: Stats?, loading: Boolean, onRefresh: () -> Unit) {
     val (gradStart, gradEnd) = balanceGradient(stats)
+    val shape = RoundedCornerShape(26.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .shadow(
+                elevation = 14.dp,
+                shape = shape,
+                ambientColor = gradStart.copy(alpha = 0.45f),
+                spotColor = gradStart.copy(alpha = 0.55f)
+            )
+            .clip(shape)
             .background(
                 Brush.linearGradient(colors = listOf(gradStart, gradEnd))
             )
             .clickable(onClick = onRefresh)
-            .padding(24.dp)
     ) {
-        Column {
+        // Decorative highlights, fintech-card style
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 54.dp, y = (-48).dp)
+                .size(150.dp)
+                .background(Color.White.copy(alpha = 0.10f), CircleShape)
+        )
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 4.dp, y = 40.dp)
+                .size(80.dp)
+                .background(Color.White.copy(alpha = 0.08f), CircleShape)
+        )
+        Box(
+            Modifier
+                .align(Alignment.BottomStart)
+                .offset(x = (-34).dp, y = 42.dp)
+                .size(120.dp)
+                .background(Color.White.copy(alpha = 0.07f), CircleShape)
+        )
+        Column(Modifier.padding(24.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -313,36 +365,52 @@ private fun PersonBalanceItem(name: String, amount: Double?, modifier: Modifier 
 }
 
 @Composable
+private fun HeaderPill(label: String, active: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (active) AccentPrimary.copy(alpha = 0.12f) else Color(0x0A000000))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (active) AccentPrimary else TextSecondary
+        )
+    }
+}
+
+@Composable
 private fun ExpensesCard(
     stats: Stats?,
     budgets: Map<String, Double>,
     budgetsOpen: Boolean,
-    onBudgets: () -> Unit
+    onBudgets: () -> Unit,
+    onMonthly: () -> Unit
 ) {
     var showDetails by remember { mutableStateOf(false) }
 
-    GlassCard {
+    AppCard {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Expenses this month",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (budgetsOpen) AccentPrimary.copy(alpha = 0.12f) else Color(0x0A000000))
-                        .clickable(onClick = onBudgets)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        "Budgets",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (budgetsOpen) AccentPrimary else TextSecondary
+                        "Spending",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary
+                    )
+                    Text(
+                        "by category",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
                     )
                 }
+                HeaderPill("Months", active = false, onClick = onMonthly)
+                HeaderPill("Budgets", active = budgetsOpen, onClick = onBudgets)
                 if (stats != null) {
                     IconButton(
                         onClick = { showDetails = true },
@@ -506,7 +574,7 @@ private fun BudgetsCard(
         )
     }
 
-    GlassCard {
+    AppCard {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -686,7 +754,7 @@ private fun AddTransactionCard(
     onSubmit: () -> Unit,
     onHistory: () -> Unit
 ) {
-    GlassCard {
+    AppCard {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -729,9 +797,9 @@ private fun AddTransactionCard(
                             selected = state.who == who,
                             onClick = { onWho(who) },
                             accentColor = when (who) {
-                                People.ISMAYIL -> Color(0xFF6366F1)
-                                People.SUBHAN  -> Color(0xFF8B5CF6)
-                                else           -> Color(0xFF0EA5E9)
+                                People.ISMAYIL -> IsmayilColor
+                                People.SUBHAN  -> SubhanColor
+                                else           -> SharedColor
                             }
                         )
                     }
