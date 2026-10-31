@@ -24,8 +24,15 @@ data class EntryUiState(
     val who: String? = null,
     val categoryKey: String? = null,
     val note: String = "",
+    // Shared expense paid from this person's own account (null = mutual
+    // card): their balance is topped up first, then it's added as Shared.
+    val paidBy: String? = null,
     val submitting: Boolean = false
 ) {
+    // Whose balance gets the matching top-up, or null for a mutual-card expense
+    val payer: String?
+        get() = if (!isTopUp && who == People.SHARED) paidBy else null
+
     // Amount as signed double: negative when withdrawal top-up
     val signedAmount: Double?
         get() {
@@ -88,6 +95,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
             isTopUp = v,
             isWithdrawal = false,
             who = newWho,
+            paidBy = null,
             categoryKey = if (v) null else current.categoryKey
         )
     }
@@ -97,7 +105,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setWho(w: String) {
-        _state.value = _state.value.copy(who = w)
+        _state.value = _state.value.copy(who = w, paidBy = null)
         viewModelScope.launch {
             Prefs.setLastWho(getApplication(), w)
         }
@@ -109,6 +117,12 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setNote(s: String) {
         _state.value = _state.value.copy(note = s.take(200))
+    }
+
+    // Shared expense paid from [payer]'s own account
+    fun setSharedPaidBy(payer: String) {
+        setWho(People.SHARED)
+        _state.value = _state.value.copy(paidBy = payer)
     }
 
     fun submit() {
@@ -130,9 +144,34 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
             category = category,
             note = s.note.trim()
         )
+        val payer = s.payer
         _state.value = s.copy(submitting = true)
         viewModelScope.launch {
-            val result = runCatching { BudgetApi.submit(BuildConfig.WEB_APP_URL, req) }
+            val url = BuildConfig.WEB_APP_URL
+            // Own-account expense: add the matching top-up first, like doing it by hand
+            var topUpId: String? = null
+            if (payer != null) {
+                val topUp = runCatching {
+                    BudgetApi.submit(url, TransactionRequest(
+                        amount = amount,
+                        isTopUp = true,
+                        transactionBy = payer,
+                        category = Categories.TOP_UP_FULL,
+                        note = listOf("Own account", category, s.note.trim())
+                            .filter { it.isNotEmpty() }.joinToString(" · ")
+                    ))
+                }
+                val topUpResp = topUp.getOrNull()
+                if (topUpResp == null || !topUpResp.ok) {
+                    val msg = topUp.exceptionOrNull()?.message ?: topUpResp?.error ?: "unknown error"
+                    _state.value = s.copy(submitting = false)
+                    _events.send(EntryEvent.Error("Failed: $msg"))
+                    return@launch
+                }
+                topUpId = topUpResp.id
+            }
+
+            val result = runCatching { BudgetApi.submit(url, req) }
             val resp = result.getOrNull()
             if (result.isSuccess && resp != null && resp.ok) {
                 _state.value = EntryUiState(
@@ -140,8 +179,16 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
                     isTopUp = s.isTopUp,
                     isWithdrawal = s.isWithdrawal
                 )
-                _events.send(EntryEvent.Success("Added"))
+                _events.send(EntryEvent.Success(if (payer != null) "Added top-up + expense" else "Added"))
             } else {
+                // Undo the top-up so we never leave half of the pair behind
+                val rolledBack = topUpId != null &&
+                    runCatching { BudgetApi.delete(url, topUpId).ok }.getOrDefault(false)
+                if (payer != null && !rolledBack) {
+                    _state.value = s.copy(submitting = false)
+                    _events.send(EntryEvent.Error("Top-up was added but the expense failed — check History"))
+                    return@launch
+                }
                 val msg = when {
                     result.isFailure -> result.exceptionOrNull()?.message ?: "network error"
                     resp == null -> "no response"

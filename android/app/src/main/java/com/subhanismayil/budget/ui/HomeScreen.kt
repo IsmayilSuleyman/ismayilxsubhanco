@@ -1,6 +1,7 @@
 package com.subhanismayil.budget.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -126,6 +128,7 @@ fun HomeScreen(
             onWho = entryViewModel::setWho,
             onCategory = entryViewModel::setCategory,
             onNote = entryViewModel::setNote,
+            onSharedPaidBy = entryViewModel::setSharedPaidBy,
             onSubmit = entryViewModel::submit,
             onHistory = onShowHistory,
             onMonthly = onShowMonthly,
@@ -148,6 +151,7 @@ private fun Content(
     onWho: (String) -> Unit,
     onCategory: (String) -> Unit,
     onNote: (String) -> Unit,
+    onSharedPaidBy: (String) -> Unit,
     onSubmit: () -> Unit,
     onHistory: () -> Unit,
     onMonthly: () -> Unit,
@@ -195,6 +199,7 @@ private fun Content(
             onWho = onWho,
             onCategory = onCategory,
             onNote = onNote,
+            onSharedPaidBy = onSharedPaidBy,
             onSubmit = onSubmit,
             onHistory = onHistory
         )
@@ -404,7 +409,7 @@ private fun ExpensesCard(
                         color = TextPrimary
                     )
                     Text(
-                        "by category",
+                        "last 30 days",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )
@@ -751,6 +756,7 @@ private fun AddTransactionCard(
     onWho: (String) -> Unit,
     onCategory: (String) -> Unit,
     onNote: (String) -> Unit,
+    onSharedPaidBy: (String) -> Unit,
     onSubmit: () -> Unit,
     onHistory: () -> Unit
 ) {
@@ -786,21 +792,24 @@ private fun AddTransactionCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SectionLabel("BY WHO")
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val choices = if (state.isTopUp) People.INDIVIDUALS else People.ALL
-                    choices.forEach { who ->
-                        PillButton(
-                            label = who,
-                            selected = state.who == who,
-                            onClick = { onWho(who) },
-                            accentColor = when (who) {
-                                People.ISMAYIL -> IsmayilColor
-                                People.SUBHAN  -> SubhanColor
-                                else           -> SharedColor
-                            }
+                if (state.isTopUp) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        People.INDIVIDUALS.forEach { who ->
+                            PillButton(
+                                label = who,
+                                selected = state.who == who,
+                                onClick = { onWho(who) },
+                                accentColor = personColor(who)
+                            )
+                        }
+                    }
+                } else {
+                    ExpenseWhoRow(state = state, onWho = onWho, onSharedPaidBy = onSharedPaidBy)
+                    state.payer?.let { payer ->
+                        Text(
+                            "Shared, paid from $payer's own account: tops up $payer, then adds it as Shared",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
                         )
                     }
                 }
@@ -951,6 +960,77 @@ private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+private fun personColor(who: String): Color = when (who) {
+    People.ISMAYIL -> IsmayilColor
+    People.SUBHAN  -> SubhanColor
+    else           -> SharedColor
+}
+
+// Expense payer row: the middle three (bracketed) are paid from the mutual
+// card; the outer two are shared expenses paid from that person's own account.
+@Composable
+private fun ExpenseWhoRow(
+    state: EntryUiState,
+    onWho: (String) -> Unit,
+    onSharedPaidBy: (String) -> Unit
+) {
+    data class Slot(val label: String, val selected: Boolean, val color: Color, val mutual: Boolean, val onClick: () -> Unit)
+    val shared = state.who == People.SHARED
+    val slots = listOf(
+        Slot(People.ISMAYIL, shared && state.paidBy == People.ISMAYIL, IsmayilColor, false) { onSharedPaidBy(People.ISMAYIL) },
+        Slot(People.SUBHAN, state.who == People.SUBHAN, SubhanColor, true) { onWho(People.SUBHAN) },
+        Slot(People.SHARED, shared && state.paidBy == null, SharedColor, true) { onWho(People.SHARED) },
+        Slot(People.ISMAYIL, state.who == People.ISMAYIL, IsmayilColor, true) { onWho(People.ISMAYIL) },
+        Slot(People.SUBHAN, shared && state.paidBy == People.SUBHAN, SubhanColor, false) { onSharedPaidBy(People.SUBHAN) }
+    )
+    Row(Modifier.fillMaxWidth()) {
+        slots.forEachIndexed { i, slot ->
+            Column(Modifier.weight(1f)) {
+                // Bracket over the mutual-card slots, drawn per slot so the
+                // segments join across the gaps; ticks drop at its two ends
+                val first = i == 1
+                val last = i == 3
+                Canvas(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                ) {
+                    if (!slot.mutual) return@Canvas
+                    val inset = 3.dp.toPx()
+                    val stroke = 3.dp.toPx()
+                    val y = stroke / 2
+                    val start = if (first) inset else 0f
+                    val end = if (last) size.width - inset else size.width
+                    drawLine(SharedColor, Offset(start, y), Offset(end, y), stroke)
+                    if (first) drawLine(SharedColor, Offset(start + stroke / 2, 0f), Offset(start + stroke / 2, size.height), stroke)
+                    if (last) drawLine(SharedColor, Offset(end - stroke / 2, 0f), Offset(end - stroke / 2, size.height), stroke)
+                }
+                OutlinedButton(
+                    onClick = slot.onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 3.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, if (slot.selected) Color.Transparent else Color(0x18000000)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (slot.selected) slot.color else Color(0x08000000),
+                        contentColor = if (slot.selected) Color.White else TextPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        slot.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (slot.selected) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun PillButton(
     label: String,
@@ -1006,14 +1086,12 @@ private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
     cursorColor = AccentPrimary
 )
 
-internal fun formatAznLarge(n: Double): String {
-    val absVal = "%.2f".format(abs(n))
-    return (if (n < 0) "-" else "") + "₼" + absVal
-}
+internal fun formatAznLarge(n: Double): String = formatAznCompact(n)
 
 internal fun formatAznCompact(n: Double): String {
     val absVal = "%.2f".format(abs(n))
-    return (if (n < 0) "-" else "") + "₼" + absVal
+    // No sign when it rounds to zero, so float dust like -0.004 shows as ₼0.00
+    return (if (n <= -0.005) "-" else "") + "₼" + absVal
 }
 
 internal fun signColor(n: Double): Color = when {

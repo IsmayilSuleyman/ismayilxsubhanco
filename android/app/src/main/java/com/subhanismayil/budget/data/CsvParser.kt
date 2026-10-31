@@ -163,8 +163,15 @@ object StatsComputer {
         return "$date $time"
     }
 
+    // Category totals (Spending card, budgets) only cover this many days,
+    // today included; balances stay all-time.
+    const val SPENDING_WINDOW_DAYS = 30L
+
     fun compute(rows: List<Map<String, String>>): Stats {
         val filtered = rows.filter { CsvParser.isExpenseRow(it) }
+        val windowStart = java.time.LocalDate.now()
+            .minusDays(SPENDING_WINDOW_DAYS - 1)
+            .toString() // "YYYY-MM-DD", compares lexicographically with sortKey
         val perPerson = People.INDIVIDUALS.associateWith { PersonStats() }
         val catTotals = Categories.EXPENSE.associate { it.key to 0.0 }.toMutableMap()
         val catBreakdown = mutableMapOf<String, Pair<Double, Double>>() // key → (ismayil, subhan)
@@ -194,7 +201,8 @@ object StatsComputer {
                 p.spent += -amt
             }
 
-            if (catKey in catTotals) {
+            val inWindow = sortKey(r["Date"].orEmpty(), r["Time"].orEmpty()).take(10) >= windowStart
+            if (catKey in catTotals && inWindow) {
                 val spent = -amt
                 catTotals[catKey] = catTotals.getValue(catKey) + spent
                 totalSpent += spent
