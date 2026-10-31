@@ -125,7 +125,7 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(paidBy = payer)
     }
 
-    fun submit() {
+    fun submit(balances: BalancesViewModel) {
         val s = _state.value
         if (!s.canSubmit || s.submitting) return
         val amount = EntryUiState.parseAmountInput(s.amount) ?: return
@@ -145,58 +145,31 @@ class EntryViewModel(app: Application) : AndroidViewModel(app) {
             note = s.note.trim()
         )
         val payer = s.payer
-        _state.value = s.copy(submitting = true)
-        viewModelScope.launch {
-            val url = BuildConfig.WEB_APP_URL
-            // Own-account expense: add the matching top-up first, like doing it by hand
-            var topUpId: String? = null
-            if (payer != null) {
-                val topUp = runCatching {
-                    BudgetApi.submit(url, TransactionRequest(
-                        amount = amount,
-                        isTopUp = true,
-                        transactionBy = payer,
-                        category = Categories.TOP_UP_FULL,
-                        note = listOf("Own account", category, s.note.trim())
-                            .filter { it.isNotEmpty() }.joinToString(" · ")
-                    ))
-                }
-                val topUpResp = topUp.getOrNull()
-                if (topUpResp == null || !topUpResp.ok) {
-                    val msg = topUp.exceptionOrNull()?.message ?: topUpResp?.error ?: "unknown error"
-                    _state.value = s.copy(submitting = false)
-                    _events.send(EntryEvent.Error("Failed: $msg"))
-                    return@launch
-                }
-                topUpId = topUpResp.id
-            }
-
-            val result = runCatching { BudgetApi.submit(url, req) }
-            val resp = result.getOrNull()
-            if (result.isSuccess && resp != null && resp.ok) {
-                _state.value = EntryUiState(
-                    who = s.who,
-                    isTopUp = s.isTopUp,
-                    isWithdrawal = s.isWithdrawal
+        // Own-account shared expense: the matching top-up goes first, like doing it by hand
+        val requests = listOfNotNull(
+            payer?.let {
+                TransactionRequest(
+                    amount = amount,
+                    isTopUp = true,
+                    transactionBy = it,
+                    category = Categories.TOP_UP_FULL,
+                    note = listOf("Own account", category, s.note.trim())
+                        .filter(String::isNotEmpty).joinToString(" · ")
                 )
-                _events.send(EntryEvent.Success(if (payer != null) "Added top-up + expense" else "Added"))
-            } else {
-                // Undo the top-up so we never leave half of the pair behind
-                val rolledBack = topUpId != null &&
-                    runCatching { BudgetApi.delete(url, topUpId).ok }.getOrDefault(false)
-                if (payer != null && !rolledBack) {
-                    _state.value = s.copy(submitting = false)
-                    _events.send(EntryEvent.Error("Top-up was added but the expense failed — check History"))
-                    return@launch
-                }
-                val msg = when {
-                    result.isFailure -> result.exceptionOrNull()?.message ?: "network error"
-                    resp == null -> "no response"
-                    else -> resp.error ?: "unknown error"
-                }
-                _state.value = s.copy(submitting = false)
-                _events.send(EntryEvent.Error("Failed: $msg"))
-            }
+            },
+            req
+        )
+        // Shown and cleared instantly; the sheet catches up in the background.
+        // If that fails, the form is refilled so it can be retried.
+        balances.submit(requests) { msg ->
+            _state.value = s.copy(submitting = false)
+            _events.trySend(EntryEvent.Error(msg))
         }
+        _state.value = EntryUiState(
+            who = s.who,
+            isTopUp = s.isTopUp,
+            isWithdrawal = s.isWithdrawal
+        )
+        _events.trySend(EntryEvent.Success(if (payer != null) "Added top-up + expense" else "Added"))
     }
 }

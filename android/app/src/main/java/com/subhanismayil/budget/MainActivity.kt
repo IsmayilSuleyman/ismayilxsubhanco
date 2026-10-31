@@ -2,6 +2,7 @@ package com.subhanismayil.budget
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
@@ -55,6 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subhanismayil.budget.ui.BalancesViewModel
+import com.subhanismayil.budget.ui.GlassBackground
+import com.subhanismayil.budget.ui.glassSurface
+import com.subhanismayil.budget.ui.gloss
 import com.subhanismayil.budget.ui.HistoryScreen
 import com.subhanismayil.budget.ui.HomeScreen
 import com.subhanismayil.budget.ui.MonthlyScreen
@@ -70,7 +74,11 @@ import com.subhanismayil.budget.ui.theme.TextSecondary
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Transparent system bars so the glass backdrop runs edge to edge
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
+        )
         setContent {
             SharedBudgetTheme {
                 AppRoot()
@@ -99,36 +107,7 @@ private fun AppRoot() {
     // data and a transaction added on Home shows up in Months/History.
     val balancesVm: BalancesViewModel = viewModel()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(BgGradientTop, BgGradientBottom)))
-    ) {
-        // Soft accent glows behind the content
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .offset(x = (-110).dp, y = (-70).dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(AccentPrimary.copy(alpha = 0.10f), Color.Transparent)
-                    ),
-                    CircleShape
-                )
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(340.dp)
-                .offset(x = 130.dp, y = 60.dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(AccentSecondary.copy(alpha = 0.09f), Color.Transparent)
-                    ),
-                    CircleShape
-                )
-        )
-
+    GlassBackground {
         Scaffold(
             containerColor = Color.Transparent,
             bottomBar = { FloatingNavBar(current = tab, onSelect = { tab = it }) }
@@ -167,10 +146,7 @@ private fun FloatingNavBar(current: AppTab, onSelect: (AppTab) -> Unit) {
             .navigationBarsPadding()
             .padding(start = 20.dp, end = 20.dp, bottom = 12.dp, top = 4.dp)
             .fillMaxWidth()
-            .shadow(14.dp, shape, ambientColor = ShadowTint, spotColor = ShadowTint)
-            .clip(shape)
-            .background(Color(0xFAFFFFFF))
-            .border(1.dp, CardBorder, shape)
+            .glassSurface(shape, elevation = 14.dp)
             .padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -206,6 +182,7 @@ private fun NavItem(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
             .background(background)
+            .then(if (selected) Modifier.gloss() else Modifier)
             .clickable(onClick = onClick)
             .padding(vertical = 11.dp),
         horizontalArrangement = Arrangement.Center,

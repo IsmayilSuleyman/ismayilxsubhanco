@@ -1,5 +1,7 @@
 package com.subhanismayil.budget.ui
 
+import com.subhanismayil.budget.ui.theme.AccentSecondary
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -224,11 +226,20 @@ fun EditTxDialog(
                             }
                         },
                         enabled = canSubmit && !submitting,
-                        modifier = Modifier.height(48.dp),
+                        modifier = Modifier
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.horizontalGradient(listOf(AccentPrimary, AccentSecondary)),
+                                alpha = if (canSubmit && !submitting) 1f else 0.45f
+                            )
+                            .gloss(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentPrimary,
-                            contentColor = Color.White
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = Color.White
                         )
                     ) {
                         if (submitting) {

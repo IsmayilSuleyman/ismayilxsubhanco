@@ -229,9 +229,7 @@ private fun TxRow(tx: RecentTx, editable: Boolean, onClick: () -> Unit) {
 
     val rowModifier = Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(16.dp))
-        .background(CardSurface)
-        .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+        .glassSurface(RoundedCornerShape(16.dp), elevation = 4.dp)
         .then(if (editable) Modifier.clickable(onClick = onClick) else Modifier)
         .padding(horizontal = 12.dp, vertical = 10.dp)
 

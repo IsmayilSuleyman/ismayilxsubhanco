@@ -58,8 +58,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.rounded.CreditCard
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,6 +78,8 @@ import com.subhanismayil.budget.data.Category
 import com.subhanismayil.budget.data.People
 import com.subhanismayil.budget.data.Stats
 import com.subhanismayil.budget.ui.theme.AccentPrimary
+import com.subhanismayil.budget.ui.theme.GlassChip
+import com.subhanismayil.budget.ui.theme.GlassChipBorder
 import com.subhanismayil.budget.ui.theme.AccentSecondary
 import com.subhanismayil.budget.ui.theme.IsmayilColor
 import com.subhanismayil.budget.ui.theme.Negative
@@ -103,10 +110,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         entryViewModel.events.collect { ev ->
             val msg = when (ev) {
-                is EntryEvent.Success -> {
-                    balancesViewModel.refresh()
-                    ev.message
-                }
+                is EntryEvent.Success -> ev.message // background sync refreshes on its own
                 is EntryEvent.Error -> ev.message
             }
             snackbarHost.showSnackbar(msg)
@@ -129,7 +133,7 @@ fun HomeScreen(
             onCategory = entryViewModel::setCategory,
             onNote = entryViewModel::setNote,
             onSharedPaidBy = entryViewModel::setSharedPaidBy,
-            onSubmit = entryViewModel::submit,
+            onSubmit = { entryViewModel.submit(balancesViewModel) },
             onHistory = onShowHistory,
             onMonthly = onShowMonthly,
             onRefresh = balancesViewModel::refresh,
@@ -176,6 +180,18 @@ private fun Content(
         )
         balancesState.error?.let { ErrorBanner(message = it, onRetry = onRefresh) }
         BalanceCard(stats = balancesState.stats, loading = balancesState.loading, onRefresh = onRefresh)
+        AddTransactionCard(
+            state = entryState,
+            onAmount = onAmount,
+            onTopUp = onTopUp,
+            onWithdrawal = onWithdrawal,
+            onWho = onWho,
+            onCategory = onCategory,
+            onNote = onNote,
+            onSharedPaidBy = onSharedPaidBy,
+            onSubmit = onSubmit,
+            onHistory = onHistory
+        )
         ExpensesCard(
             stats = balancesState.stats,
             budgets = budgets,
@@ -191,18 +207,6 @@ private fun Content(
                 onDismiss = { showBudgets = false }
             )
         }
-        AddTransactionCard(
-            state = entryState,
-            onAmount = onAmount,
-            onTopUp = onTopUp,
-            onWithdrawal = onWithdrawal,
-            onWho = onWho,
-            onCategory = onCategory,
-            onNote = onNote,
-            onSharedPaidBy = onSharedPaidBy,
-            onSubmit = onSubmit,
-            onHistory = onHistory
-        )
         Spacer(Modifier.height(8.dp))
     }
 }
@@ -282,6 +286,8 @@ private fun BalanceCard(stats: Stats?, loading: Boolean, onRefresh: () -> Unit) 
             .background(
                 Brush.linearGradient(colors = listOf(gradStart, gradEnd))
             )
+            .gloss(0.22f)
+            .border(1.dp, Color.White.copy(alpha = 0.45f), shape)
             .clickable(onClick = onRefresh)
     ) {
         // Decorative highlights, fintech-card style
@@ -374,7 +380,7 @@ private fun HeaderPill(label: String, active: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (active) AccentPrimary.copy(alpha = 0.12f) else Color(0x0A000000))
+            .background(if (active) AccentPrimary.copy(alpha = 0.12f) else GlassChip)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
@@ -478,7 +484,7 @@ private fun ExpensesCard(
                     Box(
                         modifier = Modifier
                             .size(152.dp)
-                            .background(Color(0x08000000), RoundedCornerShape(76.dp)),
+                            .background(GlassChip, RoundedCornerShape(76.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("No data", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
@@ -662,7 +668,7 @@ private fun BudgetsCard(
                     onClick = onDismiss,
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, Color(0x1A000000))
+                    border = BorderStroke(1.dp, GlassChipBorder)
                 ) {
                     Text("Cancel", color = TextPrimary)
                 }
@@ -807,7 +813,7 @@ private fun AddTransactionCard(
                     ExpenseWhoRow(state = state, onWho = onWho, onSharedPaidBy = onSharedPaidBy)
                     state.payer?.let { payer ->
                         Text(
-                            "Shared, paid from $payer's own account: tops up $payer, then adds it as Shared",
+                            "Tops up $payer first, then adds it as Shared",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -881,6 +887,7 @@ private fun AddTransactionCard(
                                 )
                             )
                         )
+                        .then(if (canSubmit) Modifier.gloss() else Modifier)
                         .clickable(enabled = canSubmit, onClick = onSubmit),
                     contentAlignment = Alignment.Center
                 ) {
@@ -894,7 +901,7 @@ private fun AddTransactionCard(
                     onClick = onHistory,
                     modifier = Modifier.height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, Color(0x1A000000)),
+                    border = BorderStroke(1.dp, GlassChipBorder),
                 ) {
                     Text("History", color = TextPrimary)
                 }
@@ -926,8 +933,8 @@ private fun SectionLabel(text: String) {
 private fun TypeToggle(isTopUp: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
-            .background(Color(0x0A000000), RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0x10000000), RoundedCornerShape(12.dp))
+            .background(GlassChip, RoundedCornerShape(12.dp))
+            .border(1.dp, GlassChipBorder, RoundedCornerShape(12.dp))
             .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -947,6 +954,7 @@ private fun TogglePart(label: String, selected: Boolean, onClick: () -> Unit) {
                 else
                     Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
+            .then(if (selected) Modifier.gloss() else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -966,68 +974,108 @@ private fun personColor(who: String): Color = when (who) {
     else           -> SharedColor
 }
 
-// Expense payer row: the middle three (bracketed) are paid from the mutual
-// card; the outer two are shared expenses paid from that person's own account.
+// Expense payer row: the three in the middle track are paid from the mutual
+// card; the two on the sides are shared expenses paid from that person's own
+// account.
 @Composable
 private fun ExpenseWhoRow(
     state: EntryUiState,
     onWho: (String) -> Unit,
     onSharedPaidBy: (String) -> Unit
 ) {
-    data class Slot(val label: String, val selected: Boolean, val color: Color, val mutual: Boolean, val onClick: () -> Unit)
     val shared = state.who == People.SHARED
-    val slots = listOf(
-        Slot(People.ISMAYIL, shared && state.paidBy == People.ISMAYIL, IsmayilColor, false) { onSharedPaidBy(People.ISMAYIL) },
-        Slot(People.SUBHAN, state.who == People.SUBHAN, SubhanColor, true) { onWho(People.SUBHAN) },
-        Slot(People.SHARED, shared && state.paidBy == null, SharedColor, true) { onWho(People.SHARED) },
-        Slot(People.ISMAYIL, state.who == People.ISMAYIL, IsmayilColor, true) { onWho(People.ISMAYIL) },
-        Slot(People.SUBHAN, shared && state.paidBy == People.SUBHAN, SubhanColor, false) { onSharedPaidBy(People.SUBHAN) }
-    )
-    Row(Modifier.fillMaxWidth()) {
-        slots.forEachIndexed { i, slot ->
-            Column(Modifier.weight(1f)) {
-                // Bracket over the mutual-card slots, drawn per slot so the
-                // segments join across the gaps; ticks drop at its two ends
-                val first = i == 1
-                val last = i == 3
-                Canvas(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                ) {
-                    if (!slot.mutual) return@Canvas
-                    val inset = 3.dp.toPx()
-                    val stroke = 3.dp.toPx()
-                    val y = stroke / 2
-                    val start = if (first) inset else 0f
-                    val end = if (last) size.width - inset else size.width
-                    drawLine(SharedColor, Offset(start, y), Offset(end, y), stroke)
-                    if (first) drawLine(SharedColor, Offset(start + stroke / 2, 0f), Offset(start + stroke / 2, size.height), stroke)
-                    if (last) drawLine(SharedColor, Offset(end - stroke / 2, 0f), Offset(end - stroke / 2, size.height), stroke)
-                }
-                OutlinedButton(
-                    onClick = slot.onClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 3.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, if (slot.selected) Color.Transparent else Color(0x18000000)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (slot.selected) slot.color else Color(0x08000000),
-                        contentColor = if (slot.selected) Color.White else TextPrimary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        slot.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (slot.selected) FontWeight.SemiBold else FontWeight.Normal,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            WhoCaption("OWN", Icons.Rounded.AccountBalanceWallet, TextSecondary)
+            WhoSegment(People.ISMAYIL, shared && state.paidBy == People.ISMAYIL, IsmayilColor, standalone = true) {
+                onSharedPaidBy(People.ISMAYIL)
             }
         }
+        Column(Modifier.weight(3.1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            WhoCaption("MUTUAL CARD", Icons.Rounded.CreditCard, SharedColor)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SharedColor.copy(alpha = 0.10f))
+                    .border(1.dp, SharedColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                WhoSegment(People.SUBHAN, state.who == People.SUBHAN, SubhanColor, Modifier.weight(1f)) { onWho(People.SUBHAN) }
+                WhoSegment(People.SHARED, shared && state.paidBy == null, SharedColor, Modifier.weight(1f)) { onWho(People.SHARED) }
+                WhoSegment(People.ISMAYIL, state.who == People.ISMAYIL, IsmayilColor, Modifier.weight(1f)) { onWho(People.ISMAYIL) }
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            WhoCaption("OWN", Icons.Rounded.AccountBalanceWallet, TextSecondary)
+            WhoSegment(People.SUBHAN, shared && state.paidBy == People.SUBHAN, SubhanColor, standalone = true) {
+                onSharedPaidBy(People.SUBHAN)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WhoCaption(text: String, icon: ImageVector, color: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+        Spacer(Modifier.width(3.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.8.sp,
+            maxLines = 1
+        )
+    }
+}
+
+// One payer option. Inside the mutual track it's flat until selected;
+// standalone (own-account) options get their own frosted pill.
+@Composable
+private fun WhoSegment(
+    label: String,
+    selected: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+    standalone: Boolean = false,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(if (standalone) 14.dp else 11.dp)
+    val base = modifier
+        .fillMaxWidth()
+        .height(if (standalone) 44.dp else 38.dp)
+    val styled = when {
+        selected -> base
+            .shadow(6.dp, shape, ambientColor = color, spotColor = color)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(lerp(color, Color.White, 0.18f), color)))
+            .gloss(0.24f)
+        standalone -> base
+            .clip(shape)
+            .background(GlassChip)
+            .border(1.dp, GlassChipBorder, shape)
+        else -> base.clip(shape)
+    }
+    Box(styled.clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (selected) Color.White else TextPrimary,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
@@ -1038,11 +1086,12 @@ private fun PillButton(
     onClick: () -> Unit,
     accentColor: Color = AccentPrimary
 ) {
-    val bg = if (selected) accentColor else Color(0x08000000)
+    val bg = if (selected) accentColor else GlassChip
     val fg = if (selected) Color.White else TextPrimary
-    val border = if (selected) Color.Transparent else Color(0x18000000)
+    val border = if (selected) Color.Transparent else GlassChipBorder
     OutlinedButton(
         onClick = onClick,
+        modifier = Modifier.glossIf(selected, RoundedCornerShape(10.dp)),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg, contentColor = fg),
@@ -1055,11 +1104,12 @@ private fun PillButton(
 @Composable
 private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) {
     val accent = colorForCategory(cat.key)
-    val bg = if (selected) accent else Color(0x08000000)
-    val border = if (selected) Color.Transparent else Color(0x18000000)
+    val bg = if (selected) accent else GlassChip
+    val border = if (selected) Color.Transparent else GlassChipBorder
     val labelColor = if (selected) Color.White else TextPrimary
     OutlinedButton(
         onClick = onClick,
+        modifier = Modifier.glossIf(selected, RoundedCornerShape(10.dp)),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, border),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = bg),
@@ -1080,9 +1130,9 @@ private fun CategoryChip(cat: Category, selected: Boolean, onClick: () -> Unit) 
 @Composable
 private fun textFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = AccentPrimary,
-    unfocusedBorderColor = Color(0x18000000),
+    unfocusedBorderColor = GlassChipBorder,
     focusedContainerColor = Color.White.copy(alpha = 0.7f),
-    unfocusedContainerColor = Color(0x08000000),
+    unfocusedContainerColor = GlassChip,
     cursorColor = AccentPrimary
 )
 
@@ -1099,3 +1149,7 @@ internal fun signColor(n: Double): Color = when {
     n < -0.005 -> Negative
     else -> TextPrimary
 }
+
+// Gloss for a selected chip, clipped so the sheen stays inside its rounded corners
+private fun Modifier.glossIf(selected: Boolean, shape: Shape): Modifier =
+    if (selected) clip(shape).gloss(0.22f) else this

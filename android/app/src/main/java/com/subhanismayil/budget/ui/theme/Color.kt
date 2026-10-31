@@ -21,6 +21,21 @@ val CardSurface = Color(0xFCFFFFFF)
 val CardBorder = Color(0x14203050)
 val ShadowTint = Color(0x33334155)
 
+// Glass theme — colour mesh behind frosted, translucent white surfaces
+val MeshBaseTop = Color(0xFFEDEBFF)
+val MeshBaseBottom = Color(0xFFE6F1FF)
+val MeshIndigo = Color(0xFF6366F1)
+val MeshPink = Color(0xFFEC4899)
+val MeshCyan = Color(0xFF06B6D4)
+val MeshViolet = Color(0xFF8B5CF6)
+val GlassTop = Color(0xA6FFFFFF)       // frosted fill, lighter at the top…
+val GlassBottom = Color(0x6BFFFFFF)    // …and clearer at the bottom
+val GlassEdgeBright = Color(0xF2FFFFFF)
+val GlassEdgeDim = Color(0x40FFFFFF)
+val GlassShadow = Color(0x334338CA)
+val GlassChip = Color(0x80FFFFFF)      // unselected pills, chips, fields
+val GlassChipBorder = Color(0xCCFFFFFF)
+
 // Person accents (used across screens)
 val IsmayilColor = Color(0xFF6366F1)
 val SubhanColor = Color(0xFF8B5CF6)
